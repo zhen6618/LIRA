@@ -1,0 +1,5 @@
+1. cd datasets/scannet 
+
+2. python reader.py将.sens生成color, depth, pose, intrinsic, extrinsic
+
+3. 
