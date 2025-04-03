@@ -14,8 +14,8 @@ cd torchsparse
 pip install tqdm
 pip install .
 
-git clone https://github.com/zhen6618/EPRecon.git
-cd EPRecon
+git clone https://github.com/zhen6618/LIRA.git
+cd LIRA
 
 pip install -r requirements.txt
 pip install sparsehash
