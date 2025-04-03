@@ -1,12 +1,5 @@
-## EPRecon: An Efficient Framework for Real-Time Panoptic 3D Reconstruction from Monocular Video
+## LIRA: Reasoning Reconstruction via Multimodal Large Language Models
 
-<p align="center">
-  <img src="https://github.com/zhen6618/EPRecon/blob/main/demo/demo.gif" alt="Alt Text">
-</p>
-
-<div align=center>
-<img src="https://github.com/zhen6618/EPRecon/blob/main/demo/Overview.png" width="1000px"> 
-</div>
 
 ## Installation
 ```
