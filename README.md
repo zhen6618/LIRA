@@ -21,7 +21,9 @@ pip install -r requirements.txt
 pip install sparsehash
 pip install -U openmim
 mim install mmcv-full
-```   
+
+```
+install additional [LISA](https://github.com/dvlab-research/LISA) environment 
 
 ## Dataset
 
