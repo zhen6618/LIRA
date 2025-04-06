@@ -84,7 +84,7 @@ cd LIRA && python main.py --cfg ./config/test.yaml
 ```
 deepspeed --master_port=24999 train_ds.py --eval_only
 ```
-2. 2D reasoning reconstrcution
+2. Reasoning reconstrcution
 ```
 python main.py --cfg ./config/test.yaml
 ```
