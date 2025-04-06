@@ -47,8 +47,7 @@ python tools/tsdf_fusion/generate_gt.py --test --data_path datasets/scannet/ --s
 ```
 python datasets/scannet/label_interpolate.py
 ```
-5. Download [2D reason segmentation](https://github.com/zju3dv/NeuralRecon) dataset
-6. Download [LIRA](https://github.com/zju3dv/NeuralRecon) dataset
+5. Download 2D reasoning segmentation dataset (*Scannet_2D_Seg_base_new.tar.gz*) , LIRA dataset (*all_tsdf_9_1.zip, grounding_scene_qa_infos_base_new.zip, grounding_scene_instance_infos_mapping.zip*) from [Here](https://github.com/zju3dv/NeuralRecon) .
 
    
 ## Training
