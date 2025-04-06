@@ -3,8 +3,8 @@
 
 ## Installation
 ```
-conda create -n EPRecon python=3.9
-conda activate EPRecon
+conda create -n LIRA python=3.9
+conda activate LIRA
 
 conda install pytorch==2.0.0 torchvision==0.15.0 torchaudio==2.0.0 pytorch-cuda=11.7 -c pytorch -c nvidia
 
