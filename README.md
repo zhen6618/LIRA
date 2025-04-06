@@ -80,13 +80,18 @@ cd LIRA && python main.py --cfg ./config/test.yaml
 ```
 
 ## Evaluation
-1. 2D reasoning segmentation 
+### 2D reasoning segmentation 
 ```
 deepspeed --master_port=24999 train_ds.py --eval_only
 ```
-2. Reasoning reconstrcution
+### Reasoning reconstrcution
+1. All scan-instruction pair inference
 ```
-python main.py --cfg ./config/test.yaml
+cd 2D_Reasoning_Segmentation && python main.py --cfg ./config/test.yaml 
+```
+2. Eval
+```
+tools/evaluation_3d.py
 ```
 
 
