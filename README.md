@@ -76,6 +76,7 @@ python main.py --cfg ./config/train.yaml
 ```
 
 ## Inference
+2D reasoning reconstrcution inference
 ```
 python main.py --cfg ./config/test.yaml
 ```
