@@ -66,8 +66,9 @@ python merge_lora_weights_and_save_hf_model.py
 ```
 ### Train 2D reasoning reconstruction
 You need to use the trained weight of 2D reasoning segmentation module (change your file path)
-
-1. 
+```
+cd LIRA
+```
 
 
 
