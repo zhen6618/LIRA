@@ -75,6 +75,10 @@ cd LIRA
 python main.py --cfg ./config/train.yaml
 ```
 
+## Inference
+```
+python main.py --cfg ./config/test.yaml
+```
 
 ## Evaluation
 1. 2D reasoning segmentation evaluation
