@@ -47,7 +47,9 @@ python tools/tsdf_fusion/generate_gt.py --test --data_path datasets/scannet/ --s
 ```
 python datasets/scannet/label_interpolate.py
 ```
+5. Download [2D reason segmentation](https://github.com/zju3dv/NeuralRecon) dataset
 
+   
 ## Training
 ```
 python main.py --cfg ./config/train.yaml
