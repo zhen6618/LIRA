@@ -92,6 +92,8 @@ python main.py --cfg ./config/test.yaml
 ```
 
 ## Acknowledgement
+[LLaVA](https://github.com/haotian-liu/LLaVA)
+[segment-anything](https://github.com/facebookresearch/segment-anything)
 [LISA](https://github.com/dvlab-research/LISA)
 [ScanNet](https://github.com/ScanNet/ScanNet)
 [NeuralRecon](https://github.com/zju3dv/NeuralRecon)
