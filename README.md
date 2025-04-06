@@ -25,6 +25,7 @@ mim install mmcv-full
 ```
 Install additional [LISA](https://github.com/dvlab-research/LISA) environment 
 
+
 ## Dataset
 
 1. Download and extract ScanNet by following the instructions provided at http://www.scan-net.org/.
@@ -69,7 +70,10 @@ You need to use the trained weight of 2D reasoning segmentation module. It is re
 ```
 cd LIRA
 ```
-
+1. Train it (Set the correct dataset and model weights paths)
+```
+python main.py --cfg ./config/train.yaml
+```
 
 
 ## Evaluation
@@ -77,6 +81,11 @@ cd LIRA
 ```
 deepspeed --master_port=24999 train_ds.py --eval_only
 ```
+2. 2D reasoning reconstrcution
+```
+python main.py --cfg ./config/test.yaml
+```
+
 
 ## Generate Results for Evaluation
 ```
