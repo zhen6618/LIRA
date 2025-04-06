@@ -69,10 +69,14 @@ cd LIRA
 python main.py --cfg ./config/train.yaml
 ```
 
-## Inference
-2D reasoning reconstrcution inference
+## Inference 
+1. 2D reasoning segmentation 
 ```
-python main.py --cfg ./config/test.yaml
+cd 2D_Reasoning_Segmentation && python chat.py
+```
+2. 2D reasoning reconstrcution 
+```
+cd LIRA && python main.py --cfg ./config/test.yaml
 ```
 
 ## Evaluation
