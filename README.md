@@ -51,13 +51,29 @@ python datasets/scannet/label_interpolate.py
 
    
 ## Training
+### Train 2D reasoning segmentation module
+1. Train it with LoRA
 ```
-python main.py --cfg ./config/train.yaml
+deepspeed --master_port=25666 train_ds.py 
 ```
+2. When training is finished, get the full model weight
+```
+cd ./runs/lisa-7b/ckpt_model && python zero_to_fp32.py . ../pytorch_model.bin
+```
+3. Merge LoRA weight
+```
+python merge_lora_weights_and_save_hf_model.py
+```
+### Train 2D reasoning reconstruction
+You need to use the trained weight of 2D reasoning segmentation module
+1. 
 
-## Testing
+
+
+## Evaluation
+1. 2D reasoning segmentation evaluation
 ```
-python main.py --cfg ./config/test.yaml
+deepspeed --master_port=24999 train_ds.py --eval_only
 ```
 
 ## Generate Results for Evaluation
