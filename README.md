@@ -93,6 +93,8 @@ python main.py --cfg ./config/test.yaml
 
 ## Acknowledgement
 [LISA](https://github.com/dvlab-research/LISA)
+[ScanNet](https://github.com/ScanNet/ScanNet)
+[NeuralRecon](https://github.com/zju3dv/NeuralRecon)
 [EPRecon](https://github.com/zhen6618/EPRecon)
 [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory)
 
