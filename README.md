@@ -87,11 +87,6 @@ python main.py --cfg ./config/test.yaml
 ```
 
 
-## Generate Results for Evaluation
-```
-python tools/generate_semantic_instance.py
-```
-
 ## Citation
 ```
 ```
