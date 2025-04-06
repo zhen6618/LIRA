@@ -43,7 +43,7 @@ python datasets/scannet/batch_load_scannet_data.py
 python tools/tsdf_fusion/generate_gt.py --data_path datasets/scannet/ --save_name all_tsdf_9 --window_size 9
 python tools/tsdf_fusion/generate_gt.py --test --data_path datasets/scannet/ --save_name all_tsdf_9 --window_size 9
 ```
-4. Panoptic label interpolation (change your file path):
+4. Instance-level label interpolation (change your file path):
 ```
 python datasets/scannet/label_interpolate.py
 ```
