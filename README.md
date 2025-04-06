@@ -54,7 +54,7 @@ python datasets/scannet/label_interpolate.py
 ### Train 2D reasoning segmentation module
 1. Train it with LoRA (change your file path)
 ```
-cd deepspeed --master_port=25666 train_ds.py 
+cd 2D_Reasoning_Segmentation && deepspeed --master_port=25666 train_ds.py 
 ```
 2. When training is finished, get the full model weight (change your file path)
 ```
