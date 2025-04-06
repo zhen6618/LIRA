@@ -74,7 +74,7 @@ python main.py --cfg ./config/train.yaml
 ```
 cd 2D_Reasoning_Segmentation && python chat.py
 ```
-2. 2D reasoning reconstrcution 
+2. Reasoning reconstrcution 
 ```
 cd LIRA && python main.py --cfg ./config/test.yaml
 ```
