@@ -65,7 +65,7 @@ cd ./runs/lisa-7b/ckpt_model && python zero_to_fp32.py . ../pytorch_model.bin
 python merge_lora_weights_and_save_hf_model.py
 ```
 ### Train 2D reasoning reconstruction
-You need to use the trained weight of 2D reasoning segmentation module (change your file path)
+You need to use the trained weight of 2D reasoning segmentation module. It is recommended to create a *checkpoint* folder under the *LIRA* folder and put it here
 ```
 cd LIRA
 ```
