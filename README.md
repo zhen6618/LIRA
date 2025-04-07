@@ -74,7 +74,13 @@ python main.py --cfg ./config/train.yaml
 ```
 
 ## Pre-trained weights
-2D reasoning segmentation: *base_new.ckpt*, TIFF (our instance fusion module): *pytorch_model-00001-of-00002.bin, pytorch_model-00002-of-00002.bin* from [here](https://huggingface.co/zhouzhen6246/LIRA)
+1. for ReasonRecon
+   
+2D reasoning segmentation: *pytorch_model-00001-of-00002.bin, pytorch_model-00002-of-00002.bin, ...*, TIFF (our instance fusion module): *TIFF_base_new.ckpt* from [here](https://huggingface.co/zhouzhen6246/LIRA)
+
+2. for ReasonRecon-Extension
+   
+2D reasoning segmentation: *pytorch_model-00001-of-00002.bin, pytorch_model-00002-of-00002.bin, ...*, TIFF (our instance fusion module): *TIFF_Extansion.ckpt* from [here](https://huggingface.co/zhouzhen6246/LIRA-Extension)
 
 ## Inference 
 1. 2D reasoning segmentation 
