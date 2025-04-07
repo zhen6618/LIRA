@@ -42,7 +42,7 @@ python tools/tsdf_fusion/generate_gt.py --test --data_path datasets/scannet/ --s
 ```
 python datasets/scannet/label_interpolate.py
 ```
-5. Download 2D reasoning segmentation dataset (*Scannet_2D_Seg_base_new.tar.gz*) , reasoning reconstruction dataset (*all_tsdf_9_1.zip, grounding_scene_qa_infos_base_new.zip, grounding_scene_instance_infos_mapping.zip, grounding_scene_instance_infos.zip*) from [Here](https://huggingface.co/datasets/zhouzhen6246/LIRA) .
+5. Download 2D reasoning segmentation dataset (*Scannet_2D_Seg_base_new.tar.gz*) , reasoning reconstruction dataset (*all_tsdf_9_1.zip, grounding_scene_qa_infos_base_new.zip, grounding_scene_instance_infos_mapping.zip, grounding_scene_instance_infos.zip*) from [here](https://huggingface.co/datasets/zhouzhen6246/LIRA) .
 
    
 ## Training
@@ -68,6 +68,9 @@ cd LIRA
 ```
 python main.py --cfg ./config/train.yaml
 ```
+
+## Pre-trained weights
+2D reasoning segmentation: *base_new.ckpt*, TIFF (Our instance fusion module): *pytorch_model-00001-of-00002.bin, pytorch_model-00002-of-00002.bin* from [here](https://huggingface.co/zhouzhen6246/LIRA)
 
 ## Inference 
 1. 2D reasoning segmentation 
