@@ -70,7 +70,7 @@ python main.py --cfg ./config/train.yaml
 ```
 
 ## Pre-trained weights
-2D reasoning segmentation: *base_new.ckpt*, TIFF (Our instance fusion module): *pytorch_model-00001-of-00002.bin, pytorch_model-00002-of-00002.bin* from [here](https://huggingface.co/zhouzhen6246/LIRA)
+2D reasoning segmentation: *base_new.ckpt*, TIFF (our instance fusion module): *pytorch_model-00001-of-00002.bin, pytorch_model-00002-of-00002.bin* from [here](https://huggingface.co/zhouzhen6246/LIRA)
 
 ## Inference 
 1. 2D reasoning segmentation 
