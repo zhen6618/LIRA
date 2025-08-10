@@ -72,11 +72,11 @@ class NeuralRecon(nn.Module):
         '''
         inputs = tocuda(inputs)
         outputs = {}
-        # imgs = torch.unbind(inputs['imgs'], 1)  # 一次处理9个view  # imgs: list9: [1, 3, 480, 640]
+        # imgs = torch.unbind(inputs['imgs'], 1)  # Process 9 views at a time # imgs: list9: [1, 3, 480, 640]
 
         # image feature extraction
         # features: list9: list3: 1/4-[1, 24, 120, 160], 1/8-[1, 40, 60, 80], 1/16-[1, 80, 30, 40]
-        # features = [self.backbone2d(self.normalizer(img)) for img in imgs]  # 9张图像分别经过Backbone
+        # features = [self.backbone2d(self.normalizer(img)) for img in imgs]  # 9 images are respectively passed through Backbone
 
         # coarse-to-fine decoder: SparseConv and GRU Fusion.
         # in: image feature; out: sparse coords and tsdf
