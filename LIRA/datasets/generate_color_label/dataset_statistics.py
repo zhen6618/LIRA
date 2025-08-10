@@ -37,7 +37,7 @@ spatial_realtions = [
     "second smallest", "next to smallest", "second tiniest"
 ]
 
-# ------------------------   统计annotated images   ------------------------
+# ------------------------   Statistics annotated images   ------------------------
 annotated_images = []
 count = 0
 for scene_name in scene_names:
@@ -59,7 +59,7 @@ all_instructions = []
 
 count = 0
 k = []
-# 依次读取每个.pkl文件
+
 for pkl_file in pkl_files:
     count += 1
     if count % 100 == 0:
@@ -80,33 +80,33 @@ for pkl_file in pkl_files:
         gt_ins_infos = pickle.load(file)
     gt_cur_infos = [gt_ins_infos[i] for i in gt_ids]
 
-    # ------------------------   统计Implicit instructions   ------------------------
+    # ------------------------   Implicit instructions   ------------------------
     is_implict_instruction = any(cls.lower() in instruction.lower() for cls in classes)
     if is_implict_instruction:
         implict_instructions.append(instruction)
 
-    # ------------------------   统计targets   ------------------------
+    # ------------------------   targets   ------------------------
     total_targets = total_targets + gt_ids
 
-    # ------------------------   统计Multi-class   ------------------------
+    # ------------------------   Multi-class   ------------------------
     cur_cls = []
     for ins_info in gt_cur_infos:
         cur_cls.append(ins_info['semantic label'])
     num_cur_cls = len(set(cur_cls))
     multi_class.append(num_cur_cls > 1)
 
-    # ------------------------   统计Multi-target   ------------------------
+    # ------------------------   Multi-target   ------------------------
     multi_targets.append(len(gt_ids) > 1)
 
-    # ------------------------   统计Zero-target   ------------------------
+    # ------------------------   Zero-target   ------------------------
     zero_targets.append(len(gt_ids) == 0)
 
-    # ------------------------   统计Spatial relations   ------------------------
+    # ------------------------   Spatial relations   ------------------------
     is_spatial_relation = any(relation.lower() in instruction.lower() for relation in spatial_realtions)
     if is_spatial_relation:
         spatial_realtion_instructions.append(instruction)
 
-    # ------------------------   统计Length instructions   ------------------------
+    # ------------------------   Length instructions   ------------------------
     length_instructions.append(len(instruction.split()))
 
     # ------------------------   instruction examples   ------------------------
