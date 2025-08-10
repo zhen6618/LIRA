@@ -31,73 +31,66 @@ def transform_mask(instance_infos):
         return label
 
 def save_ply(coords, rgb, labels, filename="point_cloud.ply"):
-    # 确保坐标和标签数量一致
     assert len(coords) == len(labels), "Coordinates and labels must have the same length."
     
-    # 定义20种颜色
     colors = [
-        [0.9, 0.9, 0.9],   # 浅灰色 (label=0)
-        [1.0, 0.0, 0.0],   # 红色
-        [0.0, 1.0, 0.0],   # 绿色
-        [0.0, 0.0, 1.0],   # 蓝色
-        [1.0, 1.0, 0.0],   # 黄色
-        [1.0, 0.0, 1.0],   # 紫色
-        [0.0, 1.0, 1.0],   # 青色
-        [0.5, 0.0, 0.0],   # 深红
-        [0.0, 0.5, 0.0],   # 深绿
-        [0.0, 0.0, 0.5],   # 深蓝
-        [1.0, 0.5, 0.0],   # 橙色
-        [0.5, 1.0, 0.0],   # 浅绿色
-        [0.0, 1.0, 0.5],   # 浅青色
-        [1.0, 0.0, 0.5],   # 粉色
-        [0.5, 0.5, 1.0],   # 浅蓝
-        [0.5, 1.0, 1.0],   # 浅紫
-        [1.0, 1.0, 0.5],   # 浅黄
-        [0.5, 0.0, 1.0],   # 深紫
-        [0.0, 0.5, 1.0],   # 天蓝
+        [0.9, 0.9, 0.9],   # (label=0)
+        [1.0, 0.0, 0.0],   
+        [0.0, 1.0, 0.0],   
+        [0.0, 0.0, 1.0],   
+        [1.0, 1.0, 0.0],   
+        [1.0, 0.0, 1.0],   
+        [0.0, 1.0, 1.0],   
+        [0.5, 0.0, 0.0],   
+        [0.0, 0.5, 0.0],   
+        [0.0, 0.0, 0.5],   
+        [1.0, 0.5, 0.0],   
+        [0.5, 1.0, 0.0],   
+        [0.0, 1.0, 0.5],   
+        [1.0, 0.0, 0.5],   
+        [0.5, 0.5, 1.0],   
+        [0.5, 1.0, 1.0],   
+        [1.0, 1.0, 0.5],   
+        [0.5, 0.0, 1.0],   
+        [0.0, 0.5, 1.0],   
     ]
     
-    # 初始化点云数据
     num_points = len(coords)
     colors_assigned = rgb
     
     for i in range(num_points):
         label = labels[i]
-        # label=0的点为灰色/原色
+
         if label == 0:
             # colors_assigned[i] = colors[0]
             continue
         else:
-            # 标签大于0的，循环使用20种颜色
             colors_assigned[i] = colors[label % 20]
     
-    # 转换为Open3D格式
     points = np.array(coords)
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(points)
     pcd.colors = o3d.utility.Vector3dVector(colors_assigned)
     
-    # 保存为PLY文件
     o3d.io.write_point_cloud(filename, pcd)
     print(f"Point cloud saved to {filename}")
 
 
 def save_single_mesh(vertices, faces, normals, values, mask, save_path):
-    # 过滤掉无效点
-    valid_indices = np.where(mask)[0]  # 获取保留的索引
+    # Filter out invalid points
+    valid_indices = np.where(mask)[0]  # Get the reserved index
     filtered_vertices = vertices[mask]
     filtered_normals = normals[mask]
     filtered_values = values[mask]
 
-    # 重新映射 faces 索引
-    index_map = np.full(vertices.shape[0], -1, dtype=int)  # 创建索引映射
-    index_map[valid_indices] = np.arange(len(valid_indices))  # 仅保留有效点
+    # Remapping faces index
+    index_map = np.full(vertices.shape[0], -1, dtype=int)  
+    index_map[valid_indices] = np.arange(len(valid_indices))  
 
-    # 过滤 faces，去除包含无效点的三角形
-    valid_faces_mask = np.all(mask[faces], axis=1)  # 仅保留所有点都有效的三角形
-    filtered_faces = index_map[faces[valid_faces_mask]]  # 重新映射索引
+    # Filter faces and remove triangles containing invalid points
+    valid_faces_mask = np.all(mask[faces], axis=1)  
+    filtered_faces = index_map[faces[valid_faces_mask]] 
 
-    # 构建 trimesh 并导出
     mesh = trimesh.Trimesh(vertices=filtered_vertices, faces=filtered_faces, vertex_normals=filtered_normals)
     mesh.export(save_path)
 
@@ -121,15 +114,15 @@ def eval_geometry_reconstruction():
         tsdf_volume = np.load(os.path.join(pred_path, 'full_tsdf_layer{}.npz'.format(0)), allow_pickle=True)
         tsdf_volume = tsdf_volume.f.arr_0
 
-        tsdf_volume[tsdf_volume == 1] = np.nan  # single layer 设置为nan表示非法值，计算表面点云时会被忽略
+        tsdf_volume[tsdf_volume == 1] = np.nan  # single layer Setting it to nan indicates an illegal value and will be ignored when calculating the surface point cloud.
         # tsdf_volume[tsdf_volume == 1] = np.inf  # double layer -1和inf之间会多一层
 
-        # 使用Marching Cubes算法提取表面点云
+        # Marching Cubes
         voxel_size = 0.04
         vertices, faces, normals, values = measure.marching_cubes(tsdf_volume, level=0.0)
 
         is_nan_flag = np.isnan(vertices).any(1)
-        vertices_no_nan = vertices[~is_nan_flag]  # 去除nan值
+        vertices_no_nan = vertices[~is_nan_flag]  
 
         save_single_mesh(vertices, faces, normals, values, ~is_nan_flag, f"single/single_{scene_name}.ply")
 
@@ -253,7 +246,7 @@ def eval_candidate_ins():
             save_gt_path = eval_path + '/' + scene_name + '.txt'
             np.savetxt(save_gt_path, gt_instance, fmt='%d')
 
-        # 处理preds
+        # process preds
         if len(candidate_pred_ins[i]) == 0:
             if len(candidate_gt_ins[i]) > 0:
                 preds[scene_name] = {'pred_scores': np.zeros(0), 'pred_classes': np.zeros(0), 'pred_masks': np.zeros((len(candidate_gt_ins[i][0]['mask']), 0))}
@@ -370,7 +363,7 @@ def LLM_RM():
         candidate_data = data['candidate_pred_ins']
         instruction = data['instruction']
 
-        "*************************************************************   LLM推理: 候选实例 ➡️ 目标实例   *************************************************************"
+        "*************************************************************   LLM reasoning: candidate instance ➡️ target instance   *************************************************************"
         prompt = "The following are some objects and their attribute information: \n "
         for i, ins in enumerate(candidate_data):
             prompt = prompt + "{ID: " + str(i) + ", " + "Color and Class: " + f"{ins['color_class']}, " + "Position Coordinate (x, y, z) (meter): " + f"{ins['bbox'][0:3]}, " + "Size (meter^3): " + str(np.round(np.prod(ins['bbox'][3:6]), 3)) + "} \n "        
@@ -396,18 +389,17 @@ def LLM_RM():
         print("response: ", response)
         # print("*********************************************************************************************************************************************")
 
-        # 解码
-        # 寻找输出实例ID 定义正则表达式，匹配形式 {ID1, ID2, ID3} 的子串
-        pattern = r'<([^>]+)>'  # 匹配 {} 内的内容
-        matches = list(re.finditer(pattern, response))  # 从字符串的末尾开始查找符合条件的子串, 反转字符串进行查找
+        # decode
+        # Find the output instance ID. Define a regular expression that matches substrings of the form {ID1, ID2, ID3}
+        pattern = r'<([^>]+)>'  # Matches the content within {}
+        matches = list(re.finditer(pattern, response)) 
         if not matches:
             matched_ids = []
         else:
-            # 获取最后一个匹配的内容
-            last_match = matches[-1].group(1)  # group(1) 是匹配的第一个括号内的内容
-            matched_ids = [id.strip() for id in last_match.split(',') if id.strip()]  # 分割该匹配为ID并验证其格式
+            # Get the last matching content
+            last_match = matches[-1].group(1)  # group(1) matches the first parenthesized content
+            matched_ids = [id.strip() for id in last_match.split(',') if id.strip()] 
 
-        # 选择实例
         final_pred_ins = []
         for matched_id in matched_ids:
             if matched_id.isdigit():
@@ -654,7 +646,7 @@ def eval_final_ins_others():
             save_gt_path = eval_path + '/' + scene_name + '.txt'
             np.savetxt(save_gt_path, gt_instance, fmt='%d')
 
-        # 处理preds
+        # process preds
         if len(pred_ins[i]) == 0:
             if len(gt_ins[i]) > 0:
                 preds[scene_name] = {'pred_scores': np.zeros(0), 'pred_classes': np.zeros(0), 'pred_masks': np.zeros((len(gt_ins[i][0]['mask']), 0))}
@@ -687,51 +679,45 @@ def eval_final_ins_others():
 
 def replace_rgb_in_ply(ply_file, labels, save_path):
 
-    # 定义20种颜色
     defined_colors = [
-        [0.9, 0.9, 0.9],   # 浅灰色 (label=0)
-        [1.0, 0.0, 0.0],   # 红色
-        [0.0, 1.0, 0.0],   # 绿色
-        [0.0, 0.0, 1.0],   # 蓝色
-        [1.0, 1.0, 0.0],   # 黄色
-        [1.0, 0.0, 1.0],   # 紫色
-        [0.0, 1.0, 1.0],   # 青色
-        [0.5, 0.0, 0.0],   # 深红
-        [0.0, 0.5, 0.0],   # 深绿
-        [0.0, 0.0, 0.5],   # 深蓝
-        [1.0, 0.5, 0.0],   # 橙色
-        [0.5, 1.0, 0.0],   # 浅绿色
-        [0.0, 1.0, 0.5],   # 浅青色
-        [1.0, 0.0, 0.5],   # 粉色
-        [0.5, 0.5, 1.0],   # 浅蓝
-        [0.5, 1.0, 1.0],   # 浅紫
-        [1.0, 1.0, 0.5],   # 浅黄
-        [0.5, 0.0, 1.0],   # 深紫
-        [0.0, 0.5, 1.0],   # 天蓝
+        [0.9, 0.9, 0.9],   # (label=0)
+        [1.0, 0.0, 0.0],   
+        [0.0, 1.0, 0.0],   
+        [0.0, 0.0, 1.0],   
+        [1.0, 1.0, 0.0],   
+        [1.0, 0.0, 1.0],   
+        [0.0, 1.0, 1.0],   
+        [0.5, 0.0, 0.0],   
+        [0.0, 0.5, 0.0],   
+        [0.0, 0.0, 0.5],   
+        [1.0, 0.5, 0.0],   
+        [0.5, 1.0, 0.0],   
+        [0.0, 1.0, 0.5],   
+        [1.0, 0.0, 0.5],   
+        [0.5, 0.5, 1.0],   
+        [0.5, 1.0, 1.0],   
+        [1.0, 1.0, 0.5],   
+        [0.5, 0.0, 1.0],   
+        [0.0, 0.5, 1.0],   
     ]
 
     mesh = o3d.io.read_triangle_mesh(ply_file)
 
-    # 获取顶点数据
     vertices = np.asarray(mesh.vertices)
     n_vertices = len(vertices)
 
-    # 获取顶点的颜色数据，如果没有颜色，则创建一个空的颜色数组
     colors = np.asarray(mesh.vertex_colors)
     if colors.shape[1] != 3:
         mesh.vertex_colors = o3d.utility.Vector3dVector(np.zeros((n_vertices, 3)))
 
-    # 使用for循环逐一替换RGB值
     for i in range(n_vertices):
         label = labels[i]
         if label == 0:
             continue
         else:
-            # 标签大于0的，循环使用20种颜色
             r, g, b = defined_colors[label % 20]
             mesh.vertex_colors[i] = [r, g, b]
 
-    # 保存修改后的PLY文件
     o3d.io.write_triangle_mesh(save_path, mesh)
 
     print(f"Point cloud saved to {save_path}")
@@ -743,7 +729,7 @@ def visualization_ply():
     pkl_files = [f for f in os.listdir(folder_path) if f.endswith('.pkl')]
     print("len: ", len(pkl_files))
 
-    with open('results/infos.txt', 'w') as file:  # 清空txt中的内容
+    with open('results/infos.txt', 'w') as file:  # Clear the contents of txt
         pass  
     
     count = 0
@@ -762,7 +748,7 @@ def visualization_ply():
         with open(file_path, 'rb') as f:
             data = pickle.load(f)
 
-        '---  快速寻找目标  ---'
+        '---  Find targets quickly  ---'
         gt_inses = data['final_gt_ins']
         # # 统计target数量
         # if len(gt_inses) != 1: 
@@ -793,7 +779,7 @@ def visualization_ply():
         # rgb = np.vstack([vertices['red'], vertices['green'], vertices['blue']]).T
         # rgb = rgb / 255.0
 
-        '*************************************************************   candidate_pred实例可视化   *************************************************************'
+        '*************************************************************   candidate_pred instance visualization   *************************************************************'
         # if len(data['candidate_pred_ins']) == 0:
         #     mask_labels = np.zeros_like(coords[:, 0]).astype(np.int64)
         # else:
@@ -802,7 +788,7 @@ def visualization_ply():
         # # save_ply(coords, rgb, mask_labels, save_path)
         # replace_rgb_in_ply(ply_path, mask_labels, save_path)
 
-        '*************************************************************   candidate_gt实例可视化   *************************************************************'
+        '*************************************************************   candidate_gt instance visualization   *************************************************************'
         # if len(data['candidate_gt_ins']) == 0:
         #     mask_labels = np.zeros_like(coords[:, 0]).astype(np.int64)
         # else:
@@ -810,7 +796,7 @@ def visualization_ply():
         # save_path = 'results/' + pkl_file.replace('.pkl', '_candidate_gt.ply')
         # replace_rgb_in_ply(ply_path, mask_labels, save_path)
 
-        '*************************************************************   final_pred实例可视化   *************************************************************'
+        '*************************************************************   final_pred instance visualization   *************************************************************'
         # if len(data['final_pred_ins']) == 0:
         #     mask_labels = np.zeros_like(coords[:, 0]).astype(np.int64)
         # else:
@@ -818,7 +804,7 @@ def visualization_ply():
         # save_path = 'results/' + pkl_file.replace('.pkl', '_final_pred.ply')
         # replace_rgb_in_ply(ply_path, mask_labels, save_path)
 
-        '*************************************************************   final_gt实例可视化   *************************************************************'
+        '*************************************************************   final_gt instance visualization   *************************************************************'
         if len(data['final_gt_ins']) == 0:
             mask_labels = np.zeros_like(coords[:, 0]).astype(np.int64)
         else:
@@ -842,11 +828,8 @@ def visualization_ply():
             str_list.append(gt_ins['color_class'])
 
         with open('results/infos.txt', "a") as file:
-            # 将列表中的元素用空隙连接起来
             line = gap.join(str_list)
-            # 将连接后的字符串写入文件
             file.write(line + "\n")
-
 
         print("*" * 50, file_path, "done.")
 
@@ -868,7 +851,7 @@ def visualization_ply_others():
     # RGB
     ply_path = ply_root_path + f'{scene_name}_vh_clean_2.ply'
 
-    '*************************************************************   实例可视化   *************************************************************'
+    '*************************************************************   instance visualization   *************************************************************'
     # save_path = 'results/' + pkl_file.replace('.pkl', '_OVIR-3D.ply')
     # save_path = 'results/' + pkl_file.replace('.pkl', '_OpenIns3D.ply')
     save_path = 'results/' + pkl_file.replace('.pkl', '_OpenMask3D.ply')
