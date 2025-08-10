@@ -19,7 +19,7 @@ from utils.utils import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description="LISA chat")
-    # checkpoint/LISA-13B-llama2-v1-explanatory/ (LLaVa1.5是基于llama2)
+    # checkpoint/LISA-13B-llama2-v1-explanatory/ (LLaVa1.5 is based on llama2)
     parser.add_argument("--version", default="/root/paddlejob/workspace/env_run/zhouzhen05/Data_SSD3/LISA_checkpoint/LISA-7B-v1-explanatory_base_new_ovis/")
     parser.add_argument("--vis_save_path", default="./vis_output", type=str)
     parser.add_argument(
@@ -240,7 +240,6 @@ def main(args):
             if pred_mask.shape[0] == 0:
                 continue
 
-            # 随机生成 RGB 颜色
             num_colors = 10
             colors = [np.random.randint(0, 256, size=3) for _ in range(num_colors)]
             colors = [np.array(color) for color in colors]
