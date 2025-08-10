@@ -40,7 +40,7 @@ print(tokenizer.decode(pred.cpu()[0], skip_special_tokens=True))
 # # Model names: "qwen/Qwen-7B-Chat", "qwen/Qwen-14B-Chat"
 # tokenizer = AutoTokenizer.from_pretrained("qwen/Qwen-7B-Chat", trust_remote_code=True)
 # model = AutoModelForCausalLM.from_pretrained("qwen/Qwen-7B-Chat", device_map="auto", trust_remote_code=True, fp16=True).eval()
-# model.generation_config = GenerationConfig.from_pretrained("Qwen/Qwen-7B-Chat", trust_remote_code=True) # 可指定不同的生成长度、top_p等相关超参
+# model.generation_config = GenerationConfig.from_pretrained("Qwen/Qwen-7B-Chat", trust_remote_code=True) # You can specify different generation lengths, top_p and other related hyper parameters
 
 # response, history = model.chat(tokenizer, "你好", history=None)
 # print(response)
