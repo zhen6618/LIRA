@@ -196,10 +196,10 @@ def train():
     elif cfg.LOADCKPT != '':
         # load checkpoint file specified by args.loadckpt
         logger.info("loading model {}".format(cfg.LOADCKPT))
-        map_location = {'cuda:%d' % 0: 'cuda:%d' % cfg.LOCAL_RANK}  # 将默认的'cuda:0'映射到'cuda:cfg.LOCAL_RANK'，适合多gpu设置
+        map_location = {'cuda:%d' % 0: 'cuda:%d' % cfg.LOCAL_RANK}  
 
         state_dict = torch.load(cfg.LOADCKPT, map_location=map_location)
-        # state_dict = torch.load(cfg.LOADCKPT, map_location='cuda:0')  # 直接固定到'cuda:0'，适合debug
+        # state_dict = torch.load(cfg.LOADCKPT, map_location='cuda:0')  
 
         model.load_state_dict(state_dict['model'], strict=True)
         optimizer.param_groups[0]['initial_lr'] = state_dict['optimizer']['param_groups'][0]['lr']
@@ -209,7 +209,6 @@ def train():
     logger.info("start at epoch {}".format(start_epoch))
     logger.info('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))  
 
-    # # 打印所有层的名字
     # for name, module in model.named_modules():
     #     print(name, module)
 
@@ -218,7 +217,6 @@ def train():
     lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones, gamma=lr_gamma,
                                                         last_epoch=start_epoch - 1)
 
-    # 子模块参数量计算
     # param_backbone2d = sum(p.numel() for p in model.module.backbone2d.parameters())  # 321832
     # param_gru_fusion = sum(p.numel() for p in model.module.neucon_net.gru_fusion.parameters())  # 2032632
     # param_sp_convs = sum(p.numel() for p in model.module.neucon_net.sp_convs.parameters())  # 5985520
