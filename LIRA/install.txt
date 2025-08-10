@@ -1,41 +1,41 @@
 配置： CUDA：11.8, cudnn：8.7.0, python: 3.10
 1. pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
-(tips: pip install xxx --no-deps 会解决包冲突且不更新已安装的其他包的版本)
+(tips: pip install xxx --no-deps Will resolve package conflicts without updating the versions of other installed packages)
 
-*** 2-4点为安装LLaVA-Grounding的步骤 ***
-2. 基本按照llava的安装 
+*** Points 2-4 are the steps for installing LLaVA-Grounding ***
+2. Basically follow the installation of llava
     conda create -n llava python=3.10 -y
     conda activate llava
     pip install -e .
     pip install -e ".[train]"
     pip install flash-attn --no-build-isolation --no-cache-dir 
-3. 安装OpenSeeD (取消requirements.txt中的所有版本号)
+3. Install OpenSeeD (remove all version numbers in requirements.txt)
     python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
     pip install git+https://github.com/cocodataset/panopticapi.git
     python -m pip install -r requirements.txt
-    若mpi4py安装失败：conda install mpi4py
-4. 安装Semantic-SAM (取消requirements.txt中的所有版本号)
+    If mpi4py installation fails：conda install mpi4py
+4. Install Semantic-SAM (remove all version numbers in requirements.txt)
     python -m pip install -r requirements.txt
 
-5. 联网安装：sudo apt-get install libsparsehash-dev (目的是安装Google Sparse Hash library，参考https://github.com/mit-han-lab/torchsparse/tree/v1.4.0)
-   源码安装：https://github.com/sparsehash/sparsehash，运行 (1) ./configure (2) make (3) make install
+5. Network installation：sudo apt-get install libsparsehash-dev (The propose is to install Google Sparse Hash library，refer to https://github.com/mit-han-lab/torchsparse/tree/v1.4.0)
+   source code installation：https://github.com/sparsehash/sparsehash，运行 (1) ./configure (2) make (3) make install
 
    git clone -b v2.0.0 https://github.com/mit-han-lab/torchsparse.git
    cd torchsparse
-   python -m pip install .  (依赖是tqdm)
+   python -m pip install .  (dependency is tqdm)
 
-6. cd到本项目中
+6. cd to this project
    pip install -r requirements.txt
    pip install sparsehash
    pip install -U openmim
    mim install mmcv-full
 
-7. 安装LLaMA-Factory (可选, LLaVA_Grounding要求transformers<=4.34.0, LLaMA-Factory要求transformers>=4.41.0)
+7. install LLaMA-Factory (option, LLaVA_Grounding requires transformers<=4.34.0, LLaMA-Factory requires transformers>=4.41.0)
    cd LLaMA-Factory
-   取消requirements中的库的版本号
+   Cancel the version number of the library in requirements
    python -m pip install --no-deps -e ".[torch,metrics]"
-   python -m pip install -r requirements.txt (可选 --no-deps)
+   python -m pip install -r requirements.txt (option --no-deps)
 
-8. 恢复llava安装中的库的版本号，否则会造成版本冲突(尤其是报红色错误的那些)、报各种奇怪的错大概率是库的版本问题
+8. Restore the version number of the library in the llava installation, otherwise it will cause version conflicts (especially those reporting red errors), and various strange errors are likely to be library version problems.
    pip install transformers==4.31.0 deepspeed==0.9.5 accelerate==0.21.0 gradio==3.39.0 pydantic==1.10.18
 
