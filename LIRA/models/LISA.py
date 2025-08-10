@@ -235,7 +235,7 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
                 images_clip_list.append(images_clip_i)  
             images_clip = torch.cat(images_clip_list, dim=0)  
 
-            output = super().forward(  # 自回归推理 + LM loss计算
+            output = super().forward(  # AR + LM loss
                 images=images_clip,
                 attention_mask=attention_masks,
                 input_ids=input_ids,
@@ -250,7 +250,7 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
         hidden_states.append(self.model.text_hidden_fcs[0](output_hidden_states[-1]))
 
         last_hidden_state = torch.stack(hidden_states, dim=-1).sum(dim=-1)
-        pred_embeddings = last_hidden_state[seg_token_mask]  # 取出segment token的embedding
+        pred_embeddings = last_hidden_state[seg_token_mask]  
         seg_token_counts = seg_token_mask.int().sum(-1) 
 
         seg_token_offset = seg_token_counts.cumsum(-1) 
@@ -264,7 +264,7 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
         for i in range(len(seg_token_offset) - 1):
             start_i, end_i = seg_token_offset[i], seg_token_offset[i + 1]
             pred_embeddings_.append(pred_embeddings[start_i:end_i])
-        pred_embeddings = pred_embeddings_  # 分成batch，如batch=2, 每个有3
+        pred_embeddings = pred_embeddings_  
 
         multimask_output = False
         pred_masks = []
@@ -272,7 +272,7 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
             (
                 sparse_embeddings,
                 dense_embeddings,
-            ) = self.model.visual_model.prompt_encoder(  # SAM的text prompt encoder
+            ) = self.model.visual_model.prompt_encoder(  # SAM text prompt encoder
                 points=None,
                 boxes=None,
                 masks=None,
@@ -291,7 +291,7 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
                 input_size=resize_list[i],
                 original_size=label_list[i].shape,
             )
-            pred_masks.append(pred_mask[:, 0])  # 输出3个mask，每个text_embdding(pred_embeddings)输出一个mask
+            pred_masks.append(pred_mask[:, 0])  # Output 3 masks, and each text_embdding(pred_embeddings) outputs one mask
 
         model_output = output
         gt_masks = masks_list
@@ -363,7 +363,7 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
         tokenizer=None,
     ):
         with torch.no_grad():
-            # test parallel time  从12.8s提速至8.5s，提速了34%
+            # test parallel time  The speed has been increased from 12.8 seconds to 8.5 seconds, a 34% improvement
             
             # images_parallel = images.repeat(9, 1, 1, 1)
             # start = time.time()
@@ -421,8 +421,8 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
             last_hidden_state = torch.stack(hidden_states, dim=-1).sum(dim=-1)  # [N, 329, 256]
             pred_embeddings = last_hidden_state[seg_token_mask]  # (n_SEG, 256)
 
-            seg_token_counts = seg_token_mask.int().sum(-1)  # [1, 1, 1, 1, 0, 1, 1, 1, 0] 每张图像的[SEG]数量
-            seg_token_offset = seg_token_counts.cumsum(-1)  # [1, 2, 3, 4, 4, 5, 6, 7, 7]  累计计数
+            seg_token_counts = seg_token_mask.int().sum(-1)  # [1, 1, 1, 1, 0, 1, 1, 1, 0] The number of [SEG] per image
+            seg_token_offset = seg_token_counts.cumsum(-1)  # [1, 2, 3, 4, 4, 5, 6, 7, 7]  Cumulative count
             seg_token_offset = torch.cat(  # [0, 1, 2, 3, 4, 4, 5, 6, 7, 7]
                 [torch.zeros(1).long().cuda(), seg_token_offset], dim=0
             )
