@@ -22,7 +22,7 @@ def merge_dict_values(dicts):
 
 
 def mask_to_bbox(mask):
-    """根据mask计算出bounding box"""
+    """Calculate the bounding box based on the mask"""
     rows = np.any(mask, axis=1)
     cols = np.any(mask, axis=0)
     if rows.any():
@@ -33,7 +33,7 @@ def mask_to_bbox(mask):
         return [0, 0, 0, 0]
 
 def mask_to_polygon(mask):
-    """根据mask计算出segmentation polygon"""
+    """Calculate the segmentation polygon based on the mask"""
     contours = measure.find_contours(mask, 0.5)
     polygons = []
 
@@ -46,7 +46,7 @@ def mask_to_polygon(mask):
     for contour in contours:
         contour = np.flip(contour, axis=1)
         segmentation = contour.ravel().tolist()
-        if len(segmentation) >= 6:  # 至少有3个点才能构成一个有效的多边形
+        if len(segmentation) >= 6:  # At least three points are needed to form an effective polygon
             polygons.append(segmentation)
     return polygons
 
@@ -68,16 +68,12 @@ def convert_to_coco(data):
     root_path = "/root/paddlejob/workspace/env_run/zhouzhen05/Code/DRecon/datasets/scannet/"
     image_root_path = "/root/paddlejob/workspace/env_run/zhouzhen05/Code/DRecon/datasets/scannet/grounding_data/grounding_images/"
     image_map = {}
-    # # 删除所有已有图片
-    # png_files = glob.glob(image_root_path + '*.png')
-    # list(map(os.remove, png_files))  # 使用map函数批量删除所有文件
     
     if os.path.exists(root_path + 'grounding_data/image_map.pkl'):
         with open(root_path + 'grounding_data/image_map.pkl', 'rb') as image_map_ff:
             image_map = pickle.load(image_map_ff)
 
     for item in data:
-        # 存储图片，并判断image是否已经存在
         if item['img_path']+'original_img_path' in image_map:
             file_name = image_map[item['img_path']+'current_img_path']
             image_id = image_map[item['img_path']+'image_id']
@@ -88,7 +84,7 @@ def convert_to_coco(data):
             image_map[item['img_path']+'original_img_path'] = item['img_path']
 
             current_img_path = image_root_path + image_map[item['img_path']+'current_img_path']
-            shutil.copy(item['img_path'], current_img_path)  # 移动图片
+            shutil.copy(item['img_path'], current_img_path)  
             # resize image to 1024*1024
             with Image.open(current_img_path) as img:
                 img = img.resize((1024, 1024))
@@ -99,7 +95,6 @@ def convert_to_coco(data):
             with open(root_path + 'grounding_data/image_map.pkl', 'wb') as image_map_f:
                 pickle.dump(image_map, image_map_f)
 
-        # 提取图像信息
         print(image_id)
         image_info = {
             "file_name": file_name,
@@ -109,18 +104,18 @@ def convert_to_coco(data):
         }
         coco_format['images'].append(image_info)
 
-        # 如果mask存在且有实例
+        # If the mask exists and has an instance
         color_class_ins_id = []
-        if len(item['candidate']) > 0:  # 如果mask存在并且非空
+        if len(item['candidate']) > 0:  # If the mask exists and is not empty
             for candidate_i in range(len(item['candidate'])):
-                mask = item['candidate'][candidate_i]['mask']  # 遍历每个mask
+                mask = item['candidate'][candidate_i]['mask']  # Traverse each mask
                 # resize mask to 1024*1024
-                mask = resize(mask.astype('float'), (1024, 1024), order=1, mode="constant", anti_aliasing=False)  # resize后变成浮点数
+                mask = resize(mask.astype('float'), (1024, 1024), order=1, mode="constant", anti_aliasing=False)  # After resize, it becomes a floating-point number
                 mask = mask > 0.5
 
                 bbox = mask_to_bbox(mask)
                 segmentation = mask_to_polygon(mask)
-                area = np.sum(mask)  # 面积为mask中True的数量
+                area = np.sum(mask)  # The area is the number of True in the mask
 
                 mask_color = item['candidate'][candidate_i]['color']
                 mask_class = item['candidate'][candidate_i]['class']
@@ -129,8 +124,8 @@ def convert_to_coco(data):
 
                 annotation_info = {
                     "image_id": image_id,
-                    "iscrowd": 0,  # 假设使用polygon存储
-                    "category_id": map_name_to_number[mask_class],  # 这里假设所有mask对应同一类别
+                    "iscrowd": 0,  # Suppose polygon storage is used
+                    "category_id": map_name_to_number[mask_class],  # Here it is assumed that all masks correspond to the same category
                     "area": int(area),
                     "segmentation": segmentation,
                     "bbox": bbox,
@@ -139,7 +134,7 @@ def convert_to_coco(data):
                 coco_format['annotations'].append(annotation_info)
                 annotation_id += 1
 
-        # 存储对话信息
+        # Store dialogue information
         conversations_single_info = {
             "id": f'{int(image_id):012}',
             "image": file_name,
@@ -172,8 +167,6 @@ def convert_to_coco(data):
 
         conversations_single_info['conversations'] = [conv_human, conv_gpt]
         coco_conversions.append(conversations_single_info)
-
-        # 如果没有实例，不生成annotation
 
     with open(root_path + 'grounding_data/coco_conversions_scannet.json', 'w') as coco_f:
         json.dump(coco_conversions, coco_f)   
