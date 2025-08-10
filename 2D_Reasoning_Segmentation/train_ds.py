@@ -70,7 +70,7 @@ def parse_args(args):
 
     parser.add_argument("--exp_name", default="lisa-7b", type=str)
     parser.add_argument("--epochs", default=10, type=int)  # 10
-    parser.add_argument("--steps_per_epoch", default=2300, type=int)  # 每个epoch的采样样本数：steps_per_epoch * batch_size * grad_accumulation_steps * num_gpu
+    parser.add_argument("--steps_per_epoch", default=2300, type=int)  # The number of samples for each epoch：steps_per_epoch * batch_size * grad_accumulation_steps * num_gpu
     parser.add_argument(
         "--batch_size", default=16, type=int, help="batch size per device per step"   
     )
@@ -93,7 +93,7 @@ def parse_args(args):
     parser.add_argument("--explanatory", default=0.1, type=float)
     parser.add_argument("--beta1", default=0.9, type=float)
     parser.add_argument("--beta2", default=0.95, type=float)
-    parser.add_argument("--num_classes_per_sample", default=1, type=int)  # 每个问题重复采样num_classes_per_sample次相同意义的句子
+    parser.add_argument("--num_classes_per_sample", default=1, type=int)  # For each question, repeat the num_classes_per_sample of sentences with the same meaning
     parser.add_argument("--exclude_val", action="store_true", default=False)
 
     parser.add_argument("--no_eval", action="store_true", default=False)
@@ -269,7 +269,7 @@ def main(args):
         args.dataset_dir,
         tokenizer,
         args.vision_tower,
-        samples_per_epoch=args.batch_size * args.grad_accumulation_steps * args.steps_per_epoch * world_size,  # 一个epoch要采样的总数据量，也就等于 len(train_dataset)
+        samples_per_epoch=args.batch_size * args.grad_accumulation_steps * args.steps_per_epoch * world_size,  # The total amount of data to be sampled in one epoch is equal to len(train_dataset).
         precision=args.precision,
         image_size=args.image_size,
         num_classes_per_sample=args.num_classes_per_sample,
@@ -342,7 +342,7 @@ def main(args):
         },
     }
 
-    # train_dataset = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, num_workers=1)  # 显式定义DataLoader，由deepspeed自动创建
+    # train_dataset = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, num_workers=1) 
     # import pdb;pdb.set_trace()
     model_engine, optimizer, train_loader, scheduler = deepspeed.initialize(
         model=model,
@@ -418,7 +418,6 @@ def main(args):
             args,
         )
 
-        # # 先把权重保存到某个文件夹下
         # print("first save", "*" * 100)
         # first_save_dir = os.path.join(args.log_dir, "first_ckpt_model")
         # if os.path.exists(first_save_dir):
@@ -729,11 +728,11 @@ def compute_bleu_with_dynamic_ngram(pred, gt):
     pred_tokens = pred[0].split()
     gt_tokens = gt[0].split()
     
-    # 根据文本长度动态调整 n-gram 最大值
-    max_n = min(len(pred_tokens), len(gt_tokens), 3)  # 最多支持到 3-gram
-    weights = tuple([1/max_n] * max_n + [0] * (4 - max_n))  # 动态分配权重
+    # Dynamically adjust the maximum value of n-gram according to the text length
+    max_n = min(len(pred_tokens), len(gt_tokens), 3)  # It supports up to 3-gram at most
+    weights = tuple([1/max_n] * max_n + [0] * (4 - max_n))  # Dynamic allocation of weights
     
-    smoothing_function = SmoothingFunction().method1  # 平滑函数
+    smoothing_function = SmoothingFunction().method1  
     return sentence_bleu([gt_tokens], pred_tokens, weights=weights, smoothing_function=smoothing_function)
 
 
