@@ -11,7 +11,7 @@ class ScanNetDataset(Dataset):
         super(ScanNetDataset, self).__init__()
         # self.datapath = '/root/paddlejob/workspace/env_run/zhouzhen05/Data_SSD3' 
         self.datapath = '/dev/shm'
-        self.instructions_num = 100  # 每个场景的instruction数量  base: 100, hard: 10
+        self.instructions_num = 100 
 
         self.mode = mode
         self.n_views = nviews
@@ -49,13 +49,13 @@ class ScanNetDataset(Dataset):
                 selected_scenes = [line.strip() for line in file]
             selected_metas = [item for item in metas if item['scene'] in selected_scenes]
 
-            invalid_scene_instructions = [('scene0000_00', 36, 50)]  # scene_name, fragment_id, instruction_id "剔除一些奇怪的case"
+            invalid_scene_instructions = [('scene0000_00', 36, 50)]  # scene_name, fragment_id, instruction_id "Eliminate some strange cases"
             # invalid_scene_instructions = []
 
-            # 将每个循环的scans, 复制instructions遍
+            # Copy the instructions for each loop's scans
             final_metas = []
             for i in range(0, self.instructions_num): 
-                # 添加 currrent instruction id
+                # add currrent instruction id
                 for j in range(len(selected_metas)):
                     meta_tmp = deepcopy(selected_metas[j])
                     meta_tmp['instruction_id'] = i
@@ -75,14 +75,14 @@ class ScanNetDataset(Dataset):
             selected_metas_extension = [item for item in metas if item['scene'] in selected_scenes_extension]
 
 
-            invalid_scene_instructions = [('scene0000_00', 36, 50)]  # scene_name, fragment_id, instruction_id "剔除一些奇怪的case"
+            invalid_scene_instructions = [('scene0000_00', 36, 50)]  # scene_name, fragment_id, instruction_id "Eliminate some strange cases"
             # invalid_scene_instructions = []
 
-            # 将每个循环的scans, 复制instructions遍
+            # Copy the instructions for each loop's scans
             final_metas = []
 
             for i in range(0, 100): 
-                # 添加 currrent instruction id
+                # add currrent instruction id
                 for j in range(len(selected_metas_base)):
                     meta_tmp = deepcopy(selected_metas_base[j])
                     meta_tmp['instruction_id'] = i
@@ -93,7 +93,7 @@ class ScanNetDataset(Dataset):
                             final_metas.append(meta_tmp)
 
             for i in range(0, 10): 
-                # 添加 currrent instruction id
+                # add currrent instruction id
                 for j in range(len(selected_metas_extension)):
                     meta_tmp = deepcopy(selected_metas_extension[j])
                     meta_tmp['instruction_id'] = i
@@ -235,7 +235,7 @@ class ScanNetDataset(Dataset):
             'fragment': meta['scene'] + '_' + str(meta['fragment_id']),
             'epoch': [self.epoch],
             'grounding_img_path': grounding_img_path,
-            # 'qa': qa,  # DDP collate_fn无法拼接
+            # 'qa': qa,  # DDP collate_fn cannot be spliced
             'instruction_id': meta['instruction_id'],
         }
 
