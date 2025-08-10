@@ -25,7 +25,7 @@ def back_project(coords, origin, voxel_size, feats, KRcam):
     '''
     n_views, bs, c, h, w = feats.shape
 
-    feature_volume_all = torch.zeros(coords.shape[0], c + 1).cuda()  # +1是存储metadata, 为voxel在相机坐标系下的深度值
+    feature_volume_all = torch.zeros(coords.shape[0], c + 1).cuda()  # +1 is to store metadata, which is the depth value of voxel in the camera coordinate system
     count = torch.zeros(coords.shape[0]).cuda()
 
     for batch in range(bs):
@@ -37,44 +37,44 @@ def back_project(coords, origin, voxel_size, feats, KRcam):
         feats_batch = feats[:, batch]
         proj_batch = KRcam[:, batch]
 
-        grid_batch = coords_batch * voxel_size + origin_batch.float()  # 转换成实际坐标 origin_batch: 起始位置, grid_batch: 目标位置
+        grid_batch = coords_batch * voxel_size + origin_batch.float()  # Convert to actual coordinates origin_batch: starting position, grid_batch: target position
         rs_grid = grid_batch.unsqueeze(0).expand(n_views, -1, -1)
         rs_grid = rs_grid.permute(0, 2, 1).contiguous()
-        nV = rs_grid.shape[-1]  # voxel总数量
-        rs_grid = torch.cat([rs_grid, torch.ones([n_views, 1, nV]).cuda()], dim=1)  # 齐次坐标形式
+        nV = rs_grid.shape[-1]  # Total number of voxels
+        rs_grid = torch.cat([rs_grid, torch.ones([n_views, 1, nV]).cuda()], dim=1)  # Homogeneous coordinate form
 
         # Project grid
-        im_p = proj_batch @ rs_grid  # 每个voxel的实际坐标映射到图像坐标系
+        im_p = proj_batch @ rs_grid  # The actual coordinates of each voxel are mapped to the image coordinate system
         im_x, im_y, im_z = im_p[:, 0], im_p[:, 1], im_p[:, 2]
-        im_x = im_x / im_z  # 获取每个view的像素坐标
+        im_x = im_x / im_z  # Get the pixel coordinates of each view
         im_y = im_y / im_z
 
-        # voxel投影之后在图像视野之外的mask掉
+        # After voxel projection, the mask outside the image field of view is lost
         im_grid = torch.stack([2 * im_x / (w - 1) - 1, 2 * im_y / (h - 1) - 1], dim=-1)
         mask = im_grid.abs() <= 1
         mask = (mask.sum(dim=-1) == 2) & (im_z > 0)
 
         feats_batch = feats_batch.view(n_views, c, h, w)
         im_grid = im_grid.view(n_views, 1, -1, 2)
-        features = grid_sample(feats_batch, im_grid, padding_mode='zeros', align_corners=True)  # 为每个voxel取对应的img feats, 插值采样  # [N_views, dim, bs, N_voxels]
+        features = grid_sample(feats_batch, im_grid, padding_mode='zeros', align_corners=True)  # Take the corresponding img feats for each voxel and interpolate the samples  # [N_views, dim, bs, N_voxels]
 
-        # 过滤, 去除nan值等
+        # Filter, remove nan values, etc.
         features = features.view(n_views, c, -1)
         mask = mask.view(n_views, -1)
         im_z = im_z.view(n_views, -1)
-        # remove nan, 令voxel对应位置为0
+        # remove nan, Set the voxel position to 0
         features[mask.unsqueeze(1).expand(-1, c, -1) == False] = 0
         im_z[mask == False] = 0
 
         count[batch_ind] = mask.sum(dim=0).float()
 
         # aggregate multi view
-        features = features.sum(dim=0)  # 9个view的feats取平均
+        features = features.sum(dim=0)  # Average the feats of 9 views
         mask = mask.sum(dim=0)
         invalid_mask = mask == 0
-        mask[invalid_mask] = 1  # 防止对图像特征平均的时候➗0，改成➗1
+        mask[invalid_mask] = 1  
         in_scope_mask = mask.unsqueeze(0)
-        features /= in_scope_mask  # 取平均
+        features /= in_scope_mask  # avg
         features = features.permute(1, 0).contiguous()  # [N_voxels, dim]
 
         # concat normalized depth value
@@ -83,7 +83,7 @@ def back_project(coords, origin, voxel_size, feats, KRcam):
         im_z_std = torch.norm(im_z[im_z > 0] - im_z_mean) + 1e-5
         im_z_norm = (im_z - im_z_mean) / im_z_std
         im_z_norm[im_z <= 0] = 0
-        features = torch.cat([features, im_z_norm], dim=1)  # feats特征 concat 标准化之后的深度信息
+        features = torch.cat([features, im_z_norm], dim=1)  # feats feature concat normalized depth information
 
         feature_volume_all[batch_ind] = features
     return feature_volume_all, count
@@ -103,8 +103,8 @@ def ins_back_project(coords, origin, voxel_size, feats, KRcam, grounding_idx):
 
     KRcam = KRcam[grounding_idx, ...].unsqueeze(0)
 
-    feature_volume_all = torch.zeros(coords.shape[0], c).bool().cuda()  # +1是存储metadata, 为voxel在相机坐标系下的深度值
-
+    feature_volume_all = torch.zeros(coords.shape[0], c).bool().cuda()  
+    
     for batch in range(bs):
         batch_ind = torch.nonzero(coords[:, 0] == batch).squeeze(1)
         coords_batch = coords[batch_ind][:, 1:]  # coords: [num_voxel, bxyz]
@@ -114,19 +114,18 @@ def ins_back_project(coords, origin, voxel_size, feats, KRcam, grounding_idx):
         feats_batch = feats[:, batch]
         proj_batch = KRcam[:, batch]
 
-        grid_batch = coords_batch * voxel_size + origin_batch.float()  # 转换成实际坐标 origin_batch: 起始位置, grid_batch: 目标位置
+        grid_batch = coords_batch * voxel_size + origin_batch.float()  
         rs_grid = grid_batch.unsqueeze(0).expand(n_views, -1, -1)
         rs_grid = rs_grid.permute(0, 2, 1).contiguous()
-        nV = rs_grid.shape[-1]  # voxel总数量
-        rs_grid = torch.cat([rs_grid, torch.ones([n_views, 1, nV]).cuda()], dim=1)  # 齐次坐标形式
+        nV = rs_grid.shape[-1]  
+        rs_grid = torch.cat([rs_grid, torch.ones([n_views, 1, nV]).cuda()], dim=1)  
 
         # Project grid
-        im_p = proj_batch @ rs_grid  # 每个voxel的实际坐标映射到图像坐标系
+        im_p = proj_batch @ rs_grid 
         im_x, im_y, im_z = im_p[:, 0], im_p[:, 1], im_p[:, 2]
-        im_x = im_x / im_z  # 获取每个view的像素坐标
+        im_x = im_x / im_z 
         im_y = im_y / im_z
 
-        # voxel投影之后在图像视野之外的mask掉
         im_grid = torch.stack([2 * im_x / (w - 1) - 1, 2 * im_y / (h - 1) - 1], dim=-1)
         mask = im_grid.abs() <= 1
         mask = (mask.sum(dim=-1) == 2) & (im_z > 0)
@@ -134,12 +133,11 @@ def ins_back_project(coords, origin, voxel_size, feats, KRcam, grounding_idx):
         feats_batch = feats_batch.view(n_views, c, h, w)
         im_grid = im_grid.view(n_views, 1, -1, 2)
         feats_batch = feats_batch.float()
-        features = grid_sample(feats_batch, im_grid, padding_mode='zeros', align_corners=True)  # 为每个voxel取对应的img feats, 插值采样  # [N_views, dim, bs, N_voxels]
+        features = grid_sample(feats_batch, im_grid, padding_mode='zeros', align_corners=True)  
 
-        # 过滤, 去除nan值等
         features = features.view(n_views, c, -1)
         mask = mask.view(n_views, -1)
-        # remove nan, 令voxel对应位置为0
+
         features[mask.unsqueeze(1).expand(-1, c, -1) == False] = 0
 
         features = features.bool()
@@ -159,19 +157,18 @@ def rs_ins_back_project(coords_batch, origin_batch, voxel_size, feats_batch, KRc
     origin_batch = origin_batch.unsqueeze(0)
     coords_batch = coords_batch.view(-1, 3)
 
-    grid_batch = coords_batch * voxel_size + origin_batch.float()  # 转换成实际坐标 origin_batch: 起始位置, grid_batch: 目标位置
+    grid_batch = coords_batch * voxel_size + origin_batch.float()  
     rs_grid = grid_batch
     rs_grid = rs_grid.permute(1, 0).contiguous()
-    nV = rs_grid.shape[-1]  # voxel总数量
-    rs_grid = torch.cat([rs_grid, torch.ones([1, nV]).cuda()], dim=0)  # 齐次坐标形式
+    nV = rs_grid.shape[-1] 
+    rs_grid = torch.cat([rs_grid, torch.ones([1, nV]).cuda()], dim=0) 
 
     # Project grid
-    im_p = proj_batch @ rs_grid  # 每个voxel的实际坐标映射到图像坐标系
+    im_p = proj_batch @ rs_grid 
     im_x, im_y, im_z = im_p[0], im_p[1], im_p[2]
-    im_x = im_x / im_z  # 获取每个view的像素坐标
+    im_x = im_x / im_z  
     im_y = im_y / im_z
 
-    # voxel投影之后在图像视野之外的mask掉
     im_grid = torch.stack([2 * im_x / (w - 1) - 1, 2 * im_y / (h - 1) - 1], dim=-1)
     mask = im_grid.abs() <= 1
     mask = (mask.sum(dim=-1) == 2) & (im_z > 0)
@@ -183,7 +180,7 @@ def rs_ins_back_project(coords_batch, origin_batch, voxel_size, feats_batch, KRc
     valid_cam_coords = im_p.permute(1, 0)[mask]
     # valid_pixel_coords = pixel_coords[mask]
 
-    '***********************   最近点映射   ***********************'
+    '***********************   Closest point mapping   ***********************'
     valid_cam_coords = rs_grid.permute(1, 0)[mask][:, :3]
 
     valid_depth_mask = depth > 0
@@ -205,8 +202,8 @@ def rs_ins_back_project(coords_batch, origin_batch, voxel_size, feats_batch, KRc
 
     distances = torch.cdist(world_coordinates, valid_cam_coords)
     min_distances, min_indices = torch.min(distances, dim=0)
-    valid_min_mask = (min_distances < voxel_size)  # 对应点距离小于voxel_size
-    valid_min_indices = min_indices[valid_min_mask]  # 对应的最小距离索引
+    valid_min_mask = (min_distances < voxel_size)  # The distance between corresponding points is less than voxel_size
+    valid_min_indices = min_indices[valid_min_mask]  # The corresponding minimum distance index
 
     dis_min_feats = torch.zeros((valid_cam_coords.shape[0], c), device=feats_batch.device, dtype=feats_batch.dtype)
     dis_min_feats[valid_min_mask] = valid_feats[valid_min_indices]
@@ -218,14 +215,14 @@ def rs_ins_back_project(coords_batch, origin_batch, voxel_size, feats_batch, KRc
 
     return assigned_features.squeeze(1)
 
-    # '***********************   处理深度值   ***********************'
-    # valid_depth_mask = depth > 0  # invaild深度值为0
+    # '***********************   Processing depth values   ***********************'
+    # valid_depth_mask = depth > 0  # Invalid depth value is 0
     # valid_depths = depth[valid_depth_mask]
-    # valid_rows, valid_cols = torch.nonzero(valid_depth_mask, as_tuple=True)  # 转置
+    # valid_rows, valid_cols = torch.nonzero(valid_depth_mask, as_tuple=True)  # transpose
 
     # pixel_coordinates = torch.stack([valid_cols*valid_depths, valid_rows*valid_depths, valid_depths], dim=1)
     # pixel_coordinates_homogeneous = torch.cat([pixel_coordinates, torch.ones_like(pixel_coordinates[:, :1])], dim=1)
-    # "计算投影矩阵的逆（注意：这可能在数值上不稳定）"
+    # "Compute the inverse of the projection matrix (note: this may be numerically unstable)"
     # P_inv = torch.inverse(proj_batch)
     # world_coordinates_homogeneous = torch.matmul(P_inv, pixel_coordinates_homogeneous.unsqueeze(-1)).squeeze(-1)
     # world_coordinates = world_coordinates_homogeneous[:, :3] / world_coordinates_homogeneous[:, 3:].expand_as(world_coordinates_homogeneous[:, :3])
@@ -236,7 +233,7 @@ def rs_ins_back_project(coords_batch, origin_batch, voxel_size, feats_batch, KRc
     # o3d.io.write_point_cloud("depth.ply", point_cloud)
 
 
-    # '***********************   只投影到射线上距离相机最近的体素   ***********************'
+    # '***********************   Only project onto the voxel closest to the camera on the ray   ***********************'
     # # 按射线深度对 voxel 排序，确保最近的在前
     # '计算外参矩阵'
     # # K = torch.tensor([[1169.621094, 0.000000, 646.295044],
@@ -256,7 +253,7 @@ def rs_ins_back_project(coords_batch, origin_batch, voxel_size, feats_batch, KRc
     # # depths = P_camera.permute(1, 0)[mask][:, 2]
 
     # depths = valid_cam_coords[:, 2]
-    # sorted_indices = torch.argsort(depths, descending=False)  # descending=False: 从到大排序
+    # sorted_indices = torch.argsort(depths, descending=False)  # descending=False: Sort from largest to largest
     # valid_voxels = valid_voxels[sorted_indices]
     # valid_pixel_coords = valid_pixel_coords[sorted_indices]
     # depths = depths[sorted_indices]
@@ -272,18 +269,18 @@ def rs_ins_back_project(coords_batch, origin_batch, voxel_size, feats_batch, KRc
     # # assigned_features.scatter_(0, pixel_indices.unsqueeze(1).expand(-1, feats_batch.shape[0]), feats_batch[:, valid_pixel_coords[:, 1], valid_pixel_coords[:, 0]].T)
 
 
-    # # # 找到每条射线（像素）上的最近 voxel
+    # # # Find the nearest voxel on each ray (pixel)
     # # unique_pixel_coords, first_indices = torch.unique(valid_pixel_coords, return_inverse=True, dim=0)
-    # # nearest_indices = sorted_indices[first_indices]  # 最近的 voxel 索引
+    # # nearest_indices = sorted_indices[first_indices]  # closest voxel index
 
-    # # # 从特征图中提取最近像素的特征
-    # # src_features = feats_batch[:, unique_pixel_coords[:, 1], unique_pixel_coords[:, 0]].T  # 转置为 (n_unique, C)
+    # # # Extract features of the nearest pixel from the feature map
+    # # src_features = feats_batch[:, unique_pixel_coords[:, 1], unique_pixel_coords[:, 0]].T  # transpose to (n_unique, C)
 
-    # # # 初始化目标特征张量并分配特征
+    # # # Initialize the target feature tensor and assign features
     # # assigned_features = torch.zeros((nV, c), device=coords_batch.device, dtype=feats_batch.dtype)
     # # assigned_features[nearest_indices] = src_features  # Shape: (N, C)
 
-    # # 找到每条射线（像素）上的最近 voxel
+    # # Find the nearest voxel on each ray (pixel)
     # unique_pixel_coords, inverse_indices = torch.unique(valid_pixel_coords, return_inverse=True, dim=0)
     # nearest_indices = torch.zeros(unique_pixel_coords.size(0), device=coords_batch.device, dtype=torch.long)  
 
@@ -292,14 +289,14 @@ def rs_ins_back_project(coords_batch, origin_batch, voxel_size, feats_batch, KRc
     #     nes_find = torch.where(inverse_indices == idx)[0][0].item()
     #     nes_in[idx] = nes_find
     
-    # # 使用scatter方法记录每个元素第一次出现的位置, scatter函数后面重复出现的会覆盖以前的值
+    # # Use the scatter method to record the position of each element for the first time. The repeated occurrences of the scatter function will overwrite the previous value.
     # nearest_indices = torch.scatter(nearest_indices, 0, inverse_indices, torch.arange(valid_pixel_coords.size(0), device=coords_batch.device))
 
-    # # 从特征图中提取最近像素的特征
-    # src_features = feats_batch[:, unique_pixel_coords[:, 1], unique_pixel_coords[:, 0]].T  # 转置为 (n_unique, C)
+    # # Extract features of the nearest pixel from the feature map
+    # src_features = feats_batch[:, unique_pixel_coords[:, 1], unique_pixel_coords[:, 0]].T  # transpose to (n_unique, C)
     # # src_features = feats_batch[:, valid_pixel_coords[:, 1], valid_pixel_coords[:, 0]].T
 
-    # # 初始化目标特征张量并分配特征
+    # # Initialize the target feature tensor and assign features
     # assigned_features = torch.zeros((nV, c), device=coords_batch.device, dtype=feats_batch.dtype)
 
     # assigned_features.scatter_(0, mask.nonzero()[sorted_indices][nearest_indices].expand(-1, c), src_features)  # Shape: (N, C) 
@@ -319,24 +316,24 @@ def rs_ins_back_project(coords_batch, origin_batch, voxel_size, feats_batch, KRc
     # # im_grid = im_grid.view(n_views, 1, -1, 2)
     # # feats_batch = feats_batch.float()
 
-    # # '***********************   只投影到射线上距离相机最近的体素   ***********************'
-    # # # 计算每个像素到所有体素的距离（这里只考虑像素-体素投影射线的距离）
-    # # voxel_positions = rs_grid[:, 0:3, :]  # 体素位置 [n_views, 3, n_voxels]
+    # # '***********************   Only project onto the voxel closest to the camera on the ray   ***********************'
+    # # # Calculate the distance from each pixel to all voxels (only the distance of the pixel-voxel projection ray is considered here)
+    # # voxel_positions = rs_grid[:, 0:3, :]  # Voxel position [n_views, 3, n_voxels]
     
-    # # # 扩展 pixel_positions 以便计算 3D 距离
+    # # # Extending pixel_positions to calculate 3D distances
     # # pixel_positions = torch.stack([im_x, im_y, im_z], dim=-1)  # [n_views, n_voxels, 3]
 
-    # # # 计算像素与体素之间的欧几里得距离
-    # # # 使用 broadcast 使得两者的维度匹配：pixel_positions (n_views, n_voxels, 3) 和 voxel_positions (n_views, 3, n_voxels)
+    # # # Calculate the Euclidean distance between pixels and voxels
+    # # # Use broadcast to make the dimensions of the two match：pixel_positions (n_views, n_voxels, 3) 和 voxel_positions (n_views, 3, n_voxels)
     # # distances = torch.norm(voxel_positions - pixel_positions.permute(0, 2, 1), dim=1)  # [n_views, n_voxels]
 
-    # # # 找到每个像素距离最小的体素
-    # # min_distances, nearest_voxel_idx = torch.min(distances, dim=-1)  # [n_views, 1] 返回距离最近的体素索引
+    # # # Find the voxel with the smallest distance to each pixel
+    # # min_distances, nearest_voxel_idx = torch.min(distances, dim=-1)  # [n_views, 1] Returns the nearest voxel index
 
-    # # # 通过索引过滤，选择每个像素最近的体素的特征
+    # # # By filtering by index, we select the features of the nearest voxel to each pixel.
     # # nearest_voxel_feats = feats_batch.view(n_views, c, -1)[:, :, nearest_voxel_idx]
 
-    # # # 将采样得到的特征与mask结合，去除无效点
+    # # # Combine the sampled features with the mask to remove invalid points
     # # nearest_voxel_feats = nearest_voxel_feats.view(n_views, c, -1)
     # # mask = mask.view(n_views, -1)
     # # nearest_voxel_feats[mask.unsqueeze(1).expand(-1, c, -1) == False] = 0
@@ -349,12 +346,12 @@ def rs_ins_back_project(coords_batch, origin_batch, voxel_size, feats_batch, KRc
 
     # # feature_volume_all = nearest_voxel_feats
 
-    # # # features = grid_sample(feats_batch, im_grid, padding_mode='zeros', align_corners=True)  # 为每个voxel取对应的img feats, 插值采样  # [N_views, dim, bs, N_voxels]
+    # # # features = grid_sample(feats_batch, im_grid, padding_mode='zeros', align_corners=True)  # Take the corresponding img feats for each voxel and interpolate the samples  # [N_views, dim, bs, N_voxels]
 
-    # # # # 过滤, 去除nan值等
+    # # # # Filter, remove nan values, etc.
     # # # features = features.view(n_views, c, -1)
     # # # mask = mask.view(n_views, -1)
-    # # # # remove nan, 令voxel对应位置为0
+    # # # # Remove nan, set the corresponding position of voxel to 0
     # # # features[mask.unsqueeze(1).expand(-1, c, -1) == False] = 0
 
     # # # if is_bool_tensor:
@@ -367,14 +364,14 @@ def rs_ins_back_project(coords_batch, origin_batch, voxel_size, feats_batch, KRc
     # # return feature_volume_all.squeeze(1)
 
 def vis_depth(voxel_coords, heat_values, filename):          
-# 将热力值归一化到 [0, 255] 范围内并作为 RGB 颜色
+# Normalize the thermal value to the range [0, 255] and use it as an RGB color
     # heat_values = ins_volume[0].detach().cpu().numpy()
     # heat_values = heat_values[heat_values != 0]
     # voxel_coords = up_coords_batch[:, 1:].detach().cpu().numpy()
     # voxel_coords = voxel_coords[heat_values != 0]
-    heat_values_normalized = (heat_values * 255).astype(np.uint8)  # 将热力值缩放到 0-255 范围
-    colors = np.tile(heat_values_normalized[:, np.newaxis], (1, 3))  # 转换为 RGB
+    heat_values_normalized = (heat_values * 255).astype(np.uint8)  
+    colors = np.tile(heat_values_normalized[:, np.newaxis], (1, 3))  
     pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(voxel_coords)  # 设置体素坐标
-    pcd.colors = o3d.utility.Vector3dVector(colors / 255.0)  # 设置颜色，必须是 [0, 1] 范围
+    pcd.points = o3d.utility.Vector3dVector(voxel_coords)  
+    pcd.colors = o3d.utility.Vector3dVector(colors / 255.0) 
     o3d.io.write_point_cloud(filename, pcd)
