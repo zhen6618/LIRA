@@ -44,7 +44,7 @@ class NeuConNet(nn.Module):
         self.cfg = cfg
         self.n_scales = len(cfg.THRESHOLDS) - 1
 
-        channels = [96, 48, 24]  # (融合后转换到预测之前的特征) -> 分辨率越大，特征维度应该越少
+        channels = [96, 48, 24]  # (Features converted from fusion to prediction) -> The larger the resolution, the fewer feature dimensions should be
 
         self.selected_img_ids = cfg.SELECTED_IMG_IDS
 
@@ -201,22 +201,21 @@ class NeuConNet(nn.Module):
 
         return up_feat, up_coords
 
-    # 运行推理并设置超时
+    # Run inference and set timeout
     # def run_inference_with_timeout(self, batch_indexs, prompt_all, rs_imgs_np_all, timeout=60):
-    #     # 创建一个进程来运行推理
+    #     # Create a process to run inference
     #     def target(batch_indexs, prompt_all, rs_imgs_np_all):
     #         return self.reason_seg_model.inference_batch_parallel(batch_indexs, prompt_all, rs_imgs_np_all)
 
     #     process = multiprocessing.Process(target=target, args=(batch_indexs, prompt_all, rs_imgs_np_all))
     #     process.start()
-    #     process.join(timeout)  # 等待进程最多 `timeout` 秒
+    #     process.join(timeout)  
 
     #     if process.is_alive():
     #         print(f"Reason_seg exceeded the time limit ({timeout} seconds), skipping it.")
-    #         process.terminate()  # 超时后终止进程
-    #         return None, None, None, None  # 返回 None 表示超时
+    #         process.terminate()  # Terminate the process after timeout
+    #         return None, None, None, None  
 
-    #     # 如果进程正常完成，返回推理结果
     #     return target(batch_indexs, prompt_all, rs_imgs_np_all)
 
     def forward(self, inputs, outputs):
@@ -257,11 +256,11 @@ class NeuConNet(nn.Module):
             # print("qa_instruction: ", qa_instruction)
             # print("qa_candidates: ", qa_candidates)
 
-            up_coords, tsdf_target, occ_target = self.fusion(inputs=inputs, batch_id=batch)  # ScanNet v2 数据集的相机视场(FOV)为 水平视场(70度)、垂直视场(55度)
+            up_coords, tsdf_target, occ_target = self.fusion(inputs=inputs, batch_id=batch)  # ScanNet v2 The camera field of view (FOV) of the dataset is horizontal field of view (70 degrees), vertical field of view (55 degrees)
             up_coords_all.append(up_coords)
             tsdf_target_all.append(tsdf_target) 
             qa_instruction_all.append(qa_instruction)
-            # 可视化panoptic target
+            # visualize panoptic target
             # for batch in range(bs):
             #     batch_ind = torch.nonzero(up_coords[:, 0] == batch).squeeze(1)
             #     generate_mesh(up_coords[batch_ind][:, 1:], panoptic_targets[batch], volume_shape, 'results/panoptic_target.ply', mode='panoptic')
@@ -269,16 +268,16 @@ class NeuConNet(nn.Module):
             # ----   generate panoptic target   ---- 
 
             """
-            每个batch一个列表, 每个列表内:
-            'labels': 实例的类别标签(包含40类语义标签)
+            Each batch has a list, and within each list:
+            'labels': Instance category labels (including 40 categories of semantic labels)
             'masks': shape:[num_semantic_labels, num_voxels]
-            'ins_ids': 实例的id
+            'ins_ids': instance ids
             """
             panoptic_targets.append(self.get_panoptic_targets(up_coords, inputs, 0, batch, qa_candidates))
 
             ins_pred_batch_level.append({})
 
-            '**************************   如果当前FBV内部没有GT实例, 直接跳过fusion和refinement   **************************'
+            '**************************   If there is no GT instance in the current FBV, skip fusion and refinement directly   **************************'
             # if len(panoptic_targets[batch]) == 0:
             #     valid_losses.append(False)
             #     continue
@@ -290,22 +289,21 @@ class NeuConNet(nn.Module):
             "***********************************************   reason_seg start   ************************************************"
             imgs = inputs['imgs'][batch]  # [N_views, 3, H, W] = [9, 3, 480, 640]
 
-            # 可视化成图片
             reason_seg_imgs = imgs.detach().cpu() 
             reason_seg_imgs = reason_seg_imgs / 255  # 0 ~ 1
 
-            # # 可视化成图片
+            # # vis as image
             # to_pil = transforms.ToPILImage()
             # for vis_i in range(reason_seg_imgs.size(0)):
             #     vis_img = reason_seg_imgs[vis_i]
-            #     vis_img = to_pil(vis_img)  # 转换为 PIL 图片
+            #     vis_img = to_pil(vis_img) 
             #     vis_img.save(f"image_{vis_i}.png")  
 
             for rs_i in range(reason_seg_imgs.size(0)):
-                rs_imgs_np = reason_seg_imgs[rs_i].permute(1, 2, 0).numpy()  # 转换为 NumPy 格式 (H, W, C) 并从 [0, 1] 归一化到 [0, 255]
-                rs_imgs_np = (rs_imgs_np * 255).astype(np.uint8)  # 转为 uint8 格式
-                ori_height, ori_width, _ = rs_imgs_np.shape  # 高、宽、通道数  (480, 640)
-                resized_height, resized_width = int(ori_height / 4), int(ori_width / 4)  # 最大特征图为/4;  features: list9: list3: 1/4-[1, 24, 120, 160], 1/8-[1, 40, 60, 80], 1/16-[1, 80, 30, 40]
+                rs_imgs_np = reason_seg_imgs[rs_i].permute(1, 2, 0).numpy()  
+                rs_imgs_np = (rs_imgs_np * 255).astype(np.uint8) 
+                ori_height, ori_width, _ = rs_imgs_np.shape  
+                resized_height, resized_width = int(ori_height / 4), int(ori_width / 4)  # features: list9: list3: 1/4-[1, 24, 120, 160], 1/8-[1, 40, 60, 80], 1/16-[1, 80, 30, 40]
                 rs_imgs_np = cv2.resize(rs_imgs_np, (1024, 1024))
                 rs_imgs_np_all.append(rs_imgs_np)
 
@@ -313,16 +311,16 @@ class NeuConNet(nn.Module):
             prompt_all.append(qa_instruction)
         
         if len(batch_indexs) > 0:
-            "reason seg 多batch并行推理 [b*9, 3, 480, 640]"
+            "reason seg Multi-batch parallel inference [b*9, 3, 480, 640]"
             with torch.no_grad():
                 # masks: [N_mask, 1024, 1024], rs_text_feats: [N_mask, 4096], rs_img_feats: [N_mask, 256, 1024, 1024]
                 # t_reason_seg_start = time.time()
-                response_all, masks_all, rs_text_feats_all, rs_img_feats_all = self.reason_seg_model.inference_batch_parallel(batch_indexs, prompt_all, rs_imgs_np_all)  # reason_seg对N张图片并行推理
-                # response_all, masks_all, rs_text_feats_all, rs_img_feats_all = self.run_inference_with_timeout(batch_indexs, prompt_all, rs_imgs_np_all, timeout=60)  # 超时处理(s)
+                response_all, masks_all, rs_text_feats_all, rs_img_feats_all = self.reason_seg_model.inference_batch_parallel(batch_indexs, prompt_all, rs_imgs_np_all)  # Reason_seg performs parallel reasoning on N images
+                # response_all, masks_all, rs_text_feats_all, rs_img_feats_all = self.run_inference_with_timeout(batch_indexs, prompt_all, rs_imgs_np_all, timeout=60)  # Timeout processing(s)
                 # print('Reason Seg inference time: {:.2f} s'.format(time.time() - t_reason_seg_start), '*' * 100)
 
             if response_all is not None:
-                rs_img_feats_all = rs_img_feats_all.to(torch.float32)  # float32包含bf16所有的数值范围
+                rs_img_feats_all = rs_img_feats_all.to(torch.float32)  # float32 contains all the value ranges of bf16
                 rs_img_feats_all = F.interpolate(rs_img_feats_all, size=(resized_height, resized_width), mode='bilinear', align_corners=False)
 
                 batch_index_count = -1
@@ -333,24 +331,23 @@ class NeuConNet(nn.Module):
                     batch_index_count += 1
                     up_coords_batch = up_coords_all[batch]
 
-                    " 对每张图片进行收集 "
+                    " Collect each image "
                     ins_pred_img_level = []
-                    occ_feats_volume_batch = []  # 将9张图像的特征投影到voxel空间，并取平均
+                    occ_feats_volume_batch = []  # Project the features of the 9 images into the voxel space and take the average
                     for rs_i in range(len(self.selected_img_ids)):  # reason_seg_imgs: [9, 3, 480, 640]
                         batch_rs_i = batch_index_count * len(self.selected_img_ids) + rs_i
 
-                        # resize回原始尺寸
                         masks = masks_all[batch_rs_i].float().unsqueeze(1)
-                        masks = F.interpolate(masks, size=(resized_height, resized_width), mode='nearest')  # 可选 mode: 'nearest' 对应最近邻插值
+                        masks = F.interpolate(masks, size=(resized_height, resized_width), mode='nearest')  # Optional mode: 'nearest' corresponds to nearest neighbor interpolation
                         masks = masks.squeeze(1).bool() 
-                        # masks = keep_largest_connected_region_batch(masks)  # 剔除离散小区域 (连通区域分析 Connected Component Analysis)
-                        # save_mask(masks[0], "mask_bw.png")  # 保存mask
+                        # masks = keep_largest_connected_region_batch(masks)  # Eliminate discrete small areas (Connected Component Analysis)
+                        # save_mask(masks[0], "mask_bw.png")  
 
                         rs_img_feats = rs_img_feats_all[batch_rs_i].unsqueeze(0)
 
                         # back-project to voxel
                         ins_text = [match.strip() for match in re.findall(r'([\w\s]+)\s\[SEG\]', response_all[batch_rs_i])]
-                        ins_volume = []  # 每个voxel对应实例类别 [num_ins, num_voxels]
+                        ins_volume = []  # The instance category corresponding to each voxel [num_ins, num_voxels]
 
                         depth = inputs['depth'][batch][self.selected_img_ids[rs_i]].unsqueeze(0).unsqueeze(0)
                         depth = F.interpolate(depth, size=(resized_height, resized_width), mode='nearest')
@@ -361,7 +358,7 @@ class NeuConNet(nn.Module):
                         for m in range(len(masks)):
                             ins_volume.append(rs_ins_back_project(up_coords_batch[:, 1:], inputs['vol_origin_partial'][batch], self.cfg.VOXEL_SIZE,  
                                                                 masks[m].unsqueeze(0), KRcam[:, batch], self.selected_img_ids[rs_i], depth)) 
-                        if len(ins_text) != len(ins_volume):  # 如果解码出的文本与mask数量不一致，跳过
+                        if len(ins_text) != len(ins_volume):  # If the decoded text does not match the number of masks, skip
                             continue
                         occ_feats_volume_batch.append(rs_ins_back_project(up_coords_batch[:, 1:], inputs['vol_origin_partial'][batch], self.cfg.VOXEL_SIZE, 
                                                                         rs_img_feats.squeeze(0), KRcam[:, batch], self.selected_img_ids[rs_i], depth))  
@@ -373,20 +370,20 @@ class NeuConNet(nn.Module):
                         #     mask_labels = torch.zeros_like(up_coords_batch[:, 1]).to(torch.int64)
                         # else:
                         #     mask_labels = transform_mask(ins_volume)
-                        # # 取最大连通区域
+                        # # Take the largest connected area
                         # mask_labels = keep_connected_region_3d(up_coords_batch[:, 1:], mask_labels, n=2)  
                         
                         # label2mesh(up_coords_batch[:, 1:], tsdf_target_all[batch], tuple(self.cfg.N_VOX), mask_labels.float().unsqueeze(1), f'results/label_target_{batch_rs_i}.ply')
                         # # save_ply(up_coords_batch[:, 1:].cpu().numpy(), mask_labels.cpu().numpy(), f'results/label_target_{batch_rs_i}.ply')
 
                         """
-                        对于每张图像, 将每个实例对应一个id:
-                        list 0: (num_voxels, 3), 每个voxel对应的坐标
-                        list 1: (num_instance, num_voxels), 每个ins对应的mask, bool类型
+                        For each image, assign each instance to an id:
+                        list 0: (num_voxels, 3), coodinates
+                        list 1: (num_instance, num_voxels), The mask corresponding to each ins, bool type
                         list 2: 
                             list 0: dict: {'id': 1, 'category': 'black chair', 'sem_id': sem class}
                             ...
-                        list 3: (num_instance, text_feat_dim), 每个实例对应的text feats
+                        list 3: (num_instance, text_feat_dim), Text feats corresponding to each instance
                         list 4: (num_instance,) image index
                         """
                         ins_preds = []
@@ -398,7 +395,7 @@ class NeuConNet(nn.Module):
                         ins_preds.append([])  # list 4
 
                         for m in range(len(ins_volume)):
-                            if ins_volume[m].sum() >= 200:  # 2D的mask映射大于1000个voxel(5%), 才认为是有效的！ (120*160=19200)
+                            if ins_volume[m].sum() >= 200:  # The 2D mask mapping is considered valid only if it has more than 1000 voxels (5%)! (120*160=19200)
                                 ins_preds[1].append(ins_volume[m])
                                 ins_preds[2].append({'id': ins_id_count, 'category': ins_text[m]})
                                 ins_preds[3].append(rs_text_feats_all[batch_rs_i][m].to(torch.float32))
@@ -413,23 +410,22 @@ class NeuConNet(nn.Module):
 
                         ins_pred_img_level.append(ins_preds)
 
-                    # 将9张图片的特征融合到occ_feats_volume
+                    # Fuse the features of 9 images into occ_feats_volume
                     occ_feats_volume_batch = torch.stack(occ_feats_volume_batch)  # [9, N, 256]
                     occ_mask_batch = torch.all(occ_feats_volume_batch == 0, dim=2)  # [9, N]
                     occ_mask_batch = ~occ_mask_batch
-                    occ_mask_batch = occ_mask_batch.sum(dim=0)  # [N,] 每个voxel能看到的图像特征数量
-                    occ_mask_batch[occ_mask_batch == 0] = 1  # 防止除0
+                    occ_mask_batch = occ_mask_batch.sum(dim=0)  # [N,] The number of image features that each voxel can see
+                    occ_mask_batch[occ_mask_batch == 0] = 1  # Prevent division by zero
 
                     occ_feats_volume_b = occ_feats_volume_batch.sum(dim=0)  # [N, 256]
-                    occ_feats_volume_b = occ_feats_volume_b / occ_mask_batch.unsqueeze(1)  # 特征均值
+                    occ_feats_volume_b = occ_feats_volume_b / occ_mask_batch.unsqueeze(1) 
 
-                    # 收集特征
                     ins_pred_batch_level[batch]['img_level'] = ins_pred_img_level
                     ins_pred_batch_level[batch]['occ_level'] = occ_feats_volume_b
 
                     del occ_mask_batch, occ_feats_volume_b
 
-                    # 更新targets
+                    # update targets
                     occ_mask_batch = torch.all(occ_feats_volume_batch == 0, dim=2)
                     occ_mask_batch = ~occ_mask_batch
                     contrastive_iou_mask = []
@@ -441,7 +437,7 @@ class NeuConNet(nn.Module):
                     panoptic_targets[batch]['contrastive_iou_mask'] = contrastive_iou_mask
                     ins_pred_batch_level[batch]['gt'] = panoptic_targets[batch]
 
-                    # 3D实例融合
+                    # 3D instance fusion
                     contrastive_loss_batch, valid_loss = self.fusion(coords_target=up_coords_batch, 
                                                                     tsdf_target=tsdf_target_all[batch], 
                                                                     inputs=inputs, 
@@ -454,7 +450,7 @@ class NeuConNet(nn.Module):
                     contrastive_losses.append(contrastive_loss_batch)
                     valid_losses.append(valid_loss)
 
-        if sum(valid_losses) > 0:  # 有合法loss
+        if sum(valid_losses) > 0:  # has valid loss
             loss_dict['contrastive'] = sum(contrastive_losses) / sum(valid_losses)
         else:
             fake_sample = torch.ones((1, 128), device=device)
@@ -525,67 +521,54 @@ class NeuConNet(nn.Module):
 
 def keep_largest_connected_region_batch(mask: torch.Tensor) -> torch.Tensor:
     """
-    保留每个掩码中的最大连通区域，去除其他小区域。
-    
-    参数:
-        mask (torch.Tensor): 输入的二值掩码，形状为 (N, H, W)，类型为 torch.bool。
-        
-    返回:
-        torch.Tensor: 只保留每个掩码中最大连通区域的掩码，形状为 (N, H, W)，类型为 torch.bool。
+    The largest connected region in each mask is retained and other small regions are removed.
     """
     
-    N, H, W = mask.shape  # 获取批次大小 N 和图像的高宽 H 和 W
-    
-    # 创建一个空的 tensor 来存储每个掩码的最大区域
+    N, H, W = mask.shape  
+
     max_area_mask = torch.zeros_like(mask)
 
-    # 逐个处理每个掩码
+    # Process each mask one by one
     for i in range(N):
-        mask_np = mask[i].cpu().numpy()  # 获取第 i 个掩码
+        mask_np = mask[i].cpu().numpy()  
         
-        # 生成连接结构元素（2D 图像，4连通或8连通）
-        structure = generate_binary_structure(2, 2)  # 8-连通
+        structure = generate_binary_structure(2, 2)  # 8-Connectivity
 
-        # 使用 scipy.ndimage.label 对掩码进行连通区域标记
         labeled_mask, num_labels = label(mask_np, structure)
 
-        # 计算每个连通区域的面积（像素数）
         region_sizes = np.bincount(labeled_mask.ravel())
 
-        # 找到最大面积的区域（排除背景区域，背景的标签为0）
-        max_label = region_sizes[1:].argmax() + 1  # `argmax` 返回最大区域的索引，+1 是因为背景标签为0
+        max_label = region_sizes[1:].argmax() + 1  
 
-        # 创建只保留最大区域的掩码
         max_area_mask_np = (labeled_mask == max_label)
 
-        # 将结果保存回 max_area_mask
         max_area_mask[i] = torch.from_numpy(max_area_mask_np).to(mask.dtype).to(mask.device)
 
     return max_area_mask
 
 def tsdf2mesh(coords, tsdf, dim_list, save_path):
     tsdf = tsdf.view(-1).detach()
-    tsdf_volume = sparse_to_dense_torch(coords.long(), tsdf, dim_list, 100, tsdf.device, final_tsdf=True)  # 最后的tsdf需要用-1和1填充
+    tsdf_volume = sparse_to_dense_torch(coords.long(), tsdf, dim_list, 100, tsdf.device, final_tsdf=True)  # The final tsdf needs to be filled with -1 and 1
     tsdf_volume = tsdf_volume.cpu().numpy()
 
-    verts, faces, norms, vals = measure.marching_cubes(tsdf_volume, level=0)  # level: 等值面的标量值，函数将提取此标量值对应的表面
+    verts, faces, norms, vals = measure.marching_cubes(tsdf_volume, level=0)  
     mesh = trimesh.Trimesh(vertices=verts, faces=faces, vertex_normals=norms)
     mesh.export(save_path)
 
 def sparse_to_dense_torch(locs, values, dim, default_val, device, final_tsdf=False):
 
-    if final_tsdf:  # 最后的tsdf需要用最近邻-1和1填充
+    if final_tsdf:  # The final tsdf needs to be filled with -1 and 1
         # default_val = 100
         # dense = torch.full([dim[0], dim[1], dim[2]], default_val, device=device).to(values.dtype)
         # if locs.shape[0] > 0:
         #     dense[locs[:, 0], locs[:, 1], locs[:, 2]] = values
         #
-        # mask = dense == default_val  # 需要被换掉的值
+        # mask = dense == default_val  
         #
         # dense, mask = dense.cpu().numpy(), mask.cpu().numpy()
-        # distance, indices = ndimage.distance_transform_edt(mask, return_indices=True)  # 计算距离变换，得到每个点到最近的不需要被替换点的距离
-        # nearest_values = dense[tuple(indices)]  # 使用indices映射，找到每个点最近的不需要被替换的点的值
-        # dense[mask] = np.where(nearest_values[mask] >= 0, 1, -1)  # 根据最近点的值来决定替换值，正数替换为1，负数替换为-1
+        # distance, indices = ndimage.distance_transform_edt(mask, return_indices=True) 
+        # nearest_values = dense[tuple(indices)] 
+        # dense[mask] = np.where(nearest_values[mask] >= 0, 1, -1) 
         # dense = torch.from_numpy(dense).to(device)
 
         default_val = 1
@@ -601,15 +584,12 @@ def sparse_to_dense_torch(locs, values, dim, default_val, device, final_tsdf=Fal
     return dense
 
 def save_mask(mask, save_path):
-    # 1. 将布尔张量转换为 NumPy 数组
-    mask_np = mask.detach().cpu().numpy()  # 确保张量在 CPU 上
+    mask_np = mask.detach().cpu().numpy()  
     
-    # 2. 将布尔值映射到黑白值（True -> 255, False -> 0）
     mask_np = (mask_np * 255).astype(np.uint8)
     
-    # 3. 保存为黑白图片
     image = Image.fromarray(mask_np)
-    image.save(save_path)  # 保存为 PNG 文件
+    image.save(save_path) 
 
 def generate_mesh(coords, input, dim_list, save_path=None, mode='tsdf', export_mesh=False):
     if mode == 'tsdf':
@@ -645,18 +625,17 @@ def generate_mesh(coords, input, dim_list, save_path=None, mode='tsdf', export_m
 
 def save_points_with_colors_to_ply(points, labels, output_file):
     """
-    将空间三维点集和对应的语义标签保存为 PLY 文件，并为每个点分配明显不同的颜色。
-    如果标签数量超过 20, 则颜色从头循环。
+    Saves a set of spatial 3D points and their corresponding semantic labels as a PLY file, assigning each point a distinct color.
+    If the number of labels exceeds 20, the colors are cycled from the beginning.
 
     参数：
-    points (numpy.ndarray): 形状为 (N, 3) 的三维点集
-    labels (numpy.ndarray): 形状为 (N,) 的语义标签
-    output_file (str): 输出的 PLY 文件路径
+    points (numpy.ndarray): 
+    labels (numpy.ndarray): semantic labels
+    output_file (str): 
 
     返回：
     None
     """
-    # 定义 20 种明显不同的颜色 (R, G, B)
     predefined_colors = [
         (255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255),
         (255, 0, 255), (128, 0, 0), (0, 128, 0), (0, 0, 128), (128, 128, 0),
@@ -665,90 +644,72 @@ def save_points_with_colors_to_ply(points, labels, output_file):
     ]
     num_colors = len(predefined_colors)
 
-    # 为每个标签分配颜色，超过 20 的标签从头循环
-    label_to_color = {label: predefined_colors[i % num_colors] for i, label in enumerate(np.unique(labels))}
-
-    # 为每个点分配颜色
+    label_to_color = {label: predefined_colors[i % num_colors] for i, label in enumerate(np.unique(labels))}\
+    
     colors = np.array([label_to_color[label] for label in labels])
 
-    # 创建 PLY 文件数据结构
     vertex_data = np.array(
         [(points[i, 0], points[i, 1], points[i, 2], colors[i, 0], colors[i, 1], colors[i, 2]) for i in range(len(points))],
         dtype=[('x', 'f4'), ('y', 'f4'), ('z', 'f4'), ('red', 'u1'), ('green', 'u1'), ('blue', 'u1')]
     )
 
-    # 创建 PlyElement 对象
     vertex = PlyElement.describe(vertex_data, 'vertex')
 
-    # 保存为 PLY 文件
     ply = PlyData([vertex])
     ply.write(output_file)
-
-    # print(f"PLY 文件已保存至 {output_file}!")
 
 
 def voxel_to_mesh_and_save(points, labels, output_file='output_mesh.ply', colormap_name='viridis'):
     """
-    将体素点集转换为网格, 并保存为PLY文件。
+    Convert the voxel point set to a grid and save it as a PLY file.
 
-    参数：
-    points (numpy.ndarray): 形状为 (N, 3) 的三维体素点集
-    labels (numpy.ndarray): 形状为 (N,) 的语义标签
-    output_file (str): 输出的PLY文件路径
-    colormap_name (str): 用于生成颜色的matplotlib colormap名称
+    params：
+    points (numpy.ndarray): (N, 3)
+    labels (numpy.ndarray): semantic labels
+    output_file (str): 
+    colormap_name (str): 
 
-    返回：
+    return：
     None
     """
-    # 将 NumPy 数组转为 open3d 点云
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(points)
 
-    # 计算法线
     pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
     
-    # 使用 Poisson Surface Reconstruction 从点云生成网格
     poisson_mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd, depth=9)
     
-    # 将网格的顶点颜色设置为标签的颜色（类似于之前的颜色映射）
     unique_labels = np.unique(labels)
     num_colors = len(unique_labels)
     colormap = cm.get_cmap(colormap_name, num_colors)
     label_to_color = {label: (np.array(colormap(i)[:3]) * 255).astype(np.uint8) for i, label in enumerate(unique_labels)}
     
-    # 为每个顶点分配颜色
     colors = np.array([label_to_color[label] for label in labels])
-    poisson_mesh.vertex_colors = o3d.utility.Vector3dVector(colors / 255.0)  # 将颜色归一化到 [0, 1] 之间
+    poisson_mesh.vertex_colors = o3d.utility.Vector3dVector(colors / 255.0) 
 
-    # 保存为 PLY 文件
     o3d.io.write_triangle_mesh(output_file, poisson_mesh)
-    # print(f"PLY 文件已保存至 {output_file}!")
 
 def save_depth(depth: np.ndarray, output_path: str):
     """
-    将深度图归一化到 0-1 并保存为热力图。
+    Normalize the depth map to 0-1 and save it as a heatmap.
 
     参数:
-        depth (np.ndarray): 深度图，形状为 (480, 640)。
-        output_path (str): 保存热力图的文件路径，例如 "xxx.png"。
+        depth (np.ndarray): depth map
+        output_path (str): 
     """
-    # 检查输入深度图是否为空
     if depth.size == 0:
-        raise ValueError("输入深度图为空！")
+        raise ValueError("input depth map is none")
 
-    # 将深度图归一化到 0-1
     depth_min = np.min(depth)
     depth_max = np.max(depth)
 
-    if depth_max > depth_min:  # 防止除以零
+    if depth_max > depth_min:  
         depth_normalized = (depth - depth_min) / (depth_max - depth_min)
     else:
-        depth_normalized = np.zeros_like(depth)  # 如果所有值相等，则返回全零图像
+        depth_normalized = np.zeros_like(depth) 
 
-    # 将归一化的深度图转换为热力图（使用 OpenCV 的 COLORMAP_JET）
     depth_colormap = cv2.applyColorMap((depth_normalized * 255).astype(np.uint8), cv2.COLORMAP_JET)
 
-    # 保存热力图
     cv2.imwrite(output_path, depth_colormap)
 
 
