@@ -87,7 +87,7 @@ class IntrinsicsPoseToProjection(object):
             for i in range(1):
                 # from (camera to world) to (world to camera)
                 proj_mat = torch.inverse(extrinsics.data.cpu())
-                scale_intrinsics = intrinsics / self.stride / 2 ** i  # 三个尺度
+                scale_intrinsics = intrinsics / self.stride / 2 ** i  # 3 scales
                 scale_intrinsics[-1, -1] = 1
                 proj_mat[:3, :4] = scale_intrinsics @ proj_mat[:3, :4]
                 view_proj_matrics.append(proj_mat)
@@ -185,7 +185,7 @@ class RandomTransformSpace(object):
         else:
             # construct rotaion matrix about z axis
             if self.random_rotation:
-                r = self.random_r[data['epoch'][0]] * 2 * np.pi  # TODO 按照epoch数量，每次线性齐次变换的矩阵T都一样
+                r = self.random_r[data['epoch'][0]] * 2 * np.pi  # TODO According to the number of epochs, the matrix T of each linear homogeneous transformation is the same
             else:
                 r = 0
             # first construct it in 2d so we can rotate bounding corners in the plane
@@ -289,11 +289,11 @@ class RandomTransformSpace(object):
             old_origin = old_origin.view(1, 3)  # scene
 
             x, y, z = self.voxel_dim  # e.g., [96, 96, 96]
-            coords = coordinates(self.voxel_dim, device=old_origin.device)  # voxel的xyz平铺
-            world = coords.type(torch.float) * self.voxel_size + vol_origin_partial.view(3, 1)  # 转换到world coordinate
-            world = torch.cat((world, torch.ones_like(world[:1])), dim=0)  # 齐次坐标
+            coords = coordinates(self.voxel_dim, device=old_origin.device)  # voxel's xyz tiling
+            world = coords.type(torch.float) * self.voxel_size + vol_origin_partial.view(3, 1)  # to world coordinate
+            world = torch.cat((world, torch.ones_like(world[:1])), dim=0)  # Homogeneous coordinates
             world = transform[:3, :] @ world  # augmentation
-            coords = (world - old_origin.T) / self.voxel_size  # 相对于整个scene的原点的voxel坐标
+            coords = (world - old_origin.T) / self.voxel_size  # The voxel coordinates relative to the origin of the entire scene
 
             data['tsdf_list'] = []
             data['occ_list'] = []
@@ -307,16 +307,16 @@ class RandomTransformSpace(object):
                 vol_dim_s = torch.div(torch.tensor(self.voxel_dim), 2 ** l, rounding_mode='floor')
                 tsdf_vol = TSDFVolumeTorch(vol_dim_s, vol_origin_partial,
                                            voxel_size=self.voxel_size * 2 ** l, margin=3)
-                for i in range(data['depth'].shape[0]):  # 由每个view的深度图融合成fragment内的tsdf
+                for i in range(data['depth'].shape[0]):  # The depth map of each view is fused into the tsdf within the fragment
                     depth_im = data['depth'][i]
                     cam_intr = data['intrinsics'][i]
                     cam_pose = data['extrinsics'][i]
 
                     tsdf_vol.integrate(depth_im, cam_intr, cam_pose, obs_weight=1.)  # 0.09s
 
-                tsdf_vol, weight_vol = tsdf_vol.get_volume()  # 在集成过程中，每个新的观察都会增加体素的权重，这有助于在多次观察中平均测量值
+                tsdf_vol, weight_vol = tsdf_vol.get_volume()  # During the integration process, each new observation increases the weight of the voxels, which helps average the measurement values across multiple observations
                 occ_vol = torch.zeros_like(tsdf_vol).bool()
-                occ_vol[(tsdf_vol < 0.999) & (tsdf_vol > -0.999) & (weight_vol > 0)] = True  # 至少两个视图能看到，在当前fragment现算的
+                occ_vol[(tsdf_vol < 0.999) & (tsdf_vol > -0.999) & (weight_vol > 0)] = True  # At least two views can be seen as being calculated in the current fragment
 
                 # grid sample expects coords in [-1,1]
                 coords_world_s = coords.view(3, x, y, z)[:, ::2 ** l, ::2 ** l, ::2 ** l] / 2 ** l
@@ -325,7 +325,7 @@ class RandomTransformSpace(object):
 
                 old_voxel_dim = list(tsdf_s.shape)
 
-                coords_world_s = 2 * coords_world_s / (torch.Tensor(old_voxel_dim) - 1).view(3, 1) - 1  # fragment在scene中的相对位置 [-1, 1]
+                coords_world_s = 2 * coords_world_s / (torch.Tensor(old_voxel_dim) - 1).view(3, 1) - 1  # The relative positions of fragments in the scene [-1, 1]
                 coords_world_s = coords_world_s[[2, 1, 0]].T.view([1] + dim_s + [3])
 
                 # bilinear interpolation near surface,
