@@ -84,7 +84,7 @@ class ReasonSegDataset(torch.utils.data.Dataset):
         print("self.samples_per_epoch: ", self.samples_per_epoch)
 
         if explanatory != -1:
-            self.explanatory_question_list = EXPLANATORY_QUESTION_LIST  # 指定问题模板列表
+            self.explanatory_question_list = EXPLANATORY_QUESTION_LIST  # Specify a list of question templates
             # self.img_to_explanation = {}
             # with open(os.path.join(base_image_dir, "reason_seg", reason_seg_data, "explanatory", "train.json")) as f:
             #     items = json.load(f)
@@ -105,7 +105,6 @@ class ReasonSegDataset(torch.utils.data.Dataset):
                     images.append(anno_json["image"])
 
                 except json.JSONDecodeError as e:
-                    # 捕获 JSON 解码错误
                     print(f"JSONDecodeError in file {json_item}: {e}")
 
             self.reason_seg_data = (images, jsons)
@@ -147,7 +146,7 @@ class ReasonSegDataset(torch.utils.data.Dataset):
         ][0]
 
         mask, sents, is_sentence, ans = get_mask_from_json(json_path, image, original_size)  # mask: [num, H, W]
-        if len(sents) >= self.num_classes_per_sample:  # 最多随机取self.num_classes_per_sample个
+        if len(sents) >= self.num_classes_per_sample:  # Randomly select at most self.num_classes_per_sample
             sampled_inds = np.random.choice(
                 list(range(len(sents))), size=self.num_classes_per_sample, replace=False
             )
@@ -184,7 +183,7 @@ class ReasonSegDataset(torch.utils.data.Dataset):
             if self.explanatory != -1:
                 choice = 2
                 if choice == 0:  # [SEG] token
-                    # answers.append(random.choice(self.answer_list))  # 直接往里加<seg>模板 e.g., It is [SEG].
+                    # answers.append(random.choice(self.answer_list)) 
                     answers.append("[SEG] and [SEG].")
                 elif choice == 1:  # [SEG] token + text answer
                     # answer = self.img_to_explanation[image_path]["outputs"]
