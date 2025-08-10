@@ -5,15 +5,12 @@
 #     lines = file.readlines()
 # val_scene_names = [line.strip() for line in lines]
 
-# # 指定文件夹路径
 # qa_path = "/root/paddlejob/workspace/env_run/zhouzhen05/Data_SSD3/scannet_grounding/grounding_scene_qa_infos_base_new/"
 
-# # 获取文件夹下所有.pkl文件
 # pkl_files = [f for f in os.listdir(qa_path) if f.endswith('.pkl')]
 
 # count = 0
 # candidate_answer_count = []
-# # 依次读取每个.pkl文件
 # for pkl_file in pkl_files:
 #     scene_name = pkl_file[:12]
 #     # if scene_name not in val_scene_names:
@@ -22,7 +19,6 @@
 
 #     file_path = os.path.join(qa_path, pkl_file)
     
-#     # 打开并加载.pkl文件
 #     with open(file_path, 'rb') as file:
 #         data = pickle.load(file)
     
@@ -43,23 +39,20 @@ import shutil
 import os
 
 def copy_files(file_list, src_folder, dest_folder):
-    # 确保目标文件夹存在
     if not os.path.exists(dest_folder):
         os.makedirs(dest_folder)
 
     for file in file_list:
-        # 构造源文件和目标文件的完整路径
         src_file = os.path.join(src_folder, file)
         dest_file = os.path.join(dest_folder, file)
         
-        # 检查源文件是否存在
         if os.path.exists(src_file):
             shutil.copy(src_file, dest_file)
-            print(f"文件 {file} 已复制到 {dest_folder}")
+            print(f"file {file} copyed to {dest_folder}")
         else:
-            print(f"文件 {file} 在源文件夹中不存在")
+            print(f"file {file} not exists in source file")
 
-# 示例用法
+# e.g.
 file_list = [
     'scene0006_01_0_scan_results.pkl',
     'scene0006_01_3_scan_results.pkl',
