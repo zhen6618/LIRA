@@ -34,10 +34,10 @@ class_color_bbox_distance = ["Identify and segment the object in class B* that i
                             "Identify the object in class B* that is howfar from the object in class A* of color C* and segment it.",
                             "Select and extract the object in class B* with the howfar distance to the C* object in the class A*.",
                             "Isolate the object in class B* that is howfar from the object in class A* with the color C*.",]
-class_color_bbox_diatance_howfar_1 = ["closest", "nearest"]  # 最近
-class_color_bbox_diatance_howfar_2 = ["farthest", "most distant", "most remote"]  # 最远
-class_color_bbox_diatance_howfar_3 = ["second closest", "next closest", "second nearest"]  # 第二近
-class_color_bbox_diatance_howfar_4 = ["second farthest", "next farthest", "second remotest"]  # 第二远
+class_color_bbox_diatance_howfar_1 = ["closest", "nearest"]  
+class_color_bbox_diatance_howfar_2 = ["farthest", "most distant", "most remote"] 
+class_color_bbox_diatance_howfar_3 = ["second closest", "next closest", "second nearest"]  
+class_color_bbox_diatance_howfar_4 = ["second farthest", "next farthest", "second remotest"]  
 class_color_distance_substitute_word = ["class A*", "class B*", "C*", "howfar"]
 
 
@@ -51,10 +51,10 @@ class_color_bbox_size = ["Identify the howsize object from the set of class A* i
                         "Locate the howsize C* object among the items of class A*.",
                         "Select and segment the howsize C* object belonging to class A*.",
                         "Choose the howsize item among the objects that are of class A* and are colored C*.",]
-class_color_bbox_size_howsize_1 = ["largest", "most sizable", "biggest"]  # 最大
-class_color_bbox_size_howsize_2 = ["smallest", "tiniest"]  # 最小
-class_color_bbox_size_howsize_3 = ["second largest", "next to largest", "second biggest"]  # 第二大
-class_color_bbox_size_howsize_4 = ["second smallest", "next to smallest", "second tiniest"]  # 第二小
+class_color_bbox_size_howsize_1 = ["largest", "most sizable", "biggest"] 
+class_color_bbox_size_howsize_2 = ["smallest", "tiniest"]  
+class_color_bbox_size_howsize_3 = ["second largest", "next to largest", "second biggest"]  
+class_color_bbox_size_howsize_4 = ["second smallest", "next to smallest", "second tiniest"]  
 class_color_bbox_size_substitute_word = ["class A*", "C*", "howsize"]
 
 
