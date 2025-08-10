@@ -42,7 +42,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="NeuralRecon ScanNet Testing")
     parser.add_argument("--model", metavar="FILE",
                         help="path to checkpoint",
-                        default='../results/scene_scannet_checkpoints_fusion_eval_29')  # 存储推理结果文件的路径
+                        default='../results/scene_scannet_checkpoints_fusion_eval_29')  # The path to store the inference result file
     parser.add_argument('--max_depth', default=10., type=float,
                         help='mask out large depth values since they are noisy')
     parser.add_argument("--data_path", metavar="DIR",
@@ -163,12 +163,12 @@ def process(scene, total_scenes_index, total_scenes_count):
                      for key, value in metrics_depth.items()}
 
     # save trimed mesh
-    file_mesh_trim = os.path.join(save_path, '%s_trim_single.ply' % scene.replace('/', '-'))  # 重新合成pred mesh
+    file_mesh_trim = os.path.join(save_path, '%s_trim_single.ply' % scene.replace('/', '-'))  
     o3d.io.write_triangle_mesh(file_mesh_trim, volume.extract_triangle_mesh())
 
     # eval trimed mesh
     file_mesh_trgt = os.path.join(args.gt_path, scene, scene + '_vh_clean_2.ply')
-    metrics_mesh = eval_mesh(file_mesh_trim, file_mesh_trgt)  # pred mesh vs gt mesh  点云距离比较
+    metrics_mesh = eval_mesh(file_mesh_trim, file_mesh_trgt)  # Pred mesh vs gt mesh point cloud distance comparison
 
     metrics = {**metrics_depth, **metrics_mesh}
 
@@ -213,7 +213,7 @@ def main():
 
     results = process_with_single_worker(info_files[0])
 
-    metrics = {}  # 所有场景的精度
+    metrics = {}  # Accuracy in all scenarios
     # for r in results:
     #     metrics.update(r)
     metrics.update(results)
