@@ -20,21 +20,16 @@ from utils.utils import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
 
 def save_mask_heatmap(mask, save_path):
     """
-    将二维mask经过sigmoid处理后的结果保存为热力图。
-
-    参数:
-    mask (numpy.ndarray): 二维数组, 表示原始mask。
-    save_path (str): 保存热力图的文件路径。
+    The result of sigmoid processing of the two-dimensional mask is saved as a heat map.
     """
 
-    # 绘制热力图并保存到文件
-    plt.figure(figsize=(8, 6))  # 设置画布大小
+    plt.figure(figsize=(8, 6))  
     plt.imshow(mask, cmap='hot', interpolation='nearest')
-    plt.colorbar()  # 可选：显示颜色条
-    plt.axis('off')  # 可选：隐藏坐标轴
+    plt.colorbar() 
+    plt.axis('off')  
     plt.tight_layout()
-    plt.savefig(save_path, bbox_inches='tight', pad_inches=0)  # 保存图像，去除多余的白边
-    plt.close()  # 关闭画布，释放内存
+    plt.savefig(save_path, bbox_inches='tight', pad_inches=0) 
+    plt.close() 
 
     print("{} has been saved.".format(save_path))
 
@@ -255,13 +250,12 @@ class Reason_Seg:
         response = text_output.split('ASSISTANT: ')[1].split("</s>")[0]
         masks = pred_masks[0] > 0
 
-        "*************   保存预测结果   *************"
+        "*************   Save prediction results   *************"
         # print("text_output: ", text_output)
         # for i, pred_mask in enumerate(pred_masks):
         #     if pred_mask.shape[0] == 0:
         #         continue
 
-        #     # 随机生成 RGB 颜色
         #     num_colors = 10
         #     colors = [np.random.randint(0, 256, size=3) for _ in range(num_colors)]
         #     colors = [np.array(color) for color in colors]
@@ -364,7 +358,7 @@ class Reason_Seg:
         for i in range(len(pred_masks)):
             masks.append(pred_masks[i] > 0)
 
-        "*************   保存预测结果   *************"
+        "*************   Save prediction results   *************"
         # for i, response_i in enumerate(response):
         #     print(i, response_i)
 
@@ -372,7 +366,6 @@ class Reason_Seg:
         #     if pred_mask.shape[0] == 0:
         #         continue
 
-        #     # 随机生成 RGB 颜色
         #     num_colors = 10
         #     colors = [np.random.randint(0, 256, size=3) for _ in range(num_colors)]
         #     colors = [np.array(color) for color in colors]
@@ -457,8 +450,8 @@ class Reason_Seg:
             input_ids[-1] = tokenizer_image_token(prompt, self.tokenizer, return_tensors="pt")
             input_ids[-1] = input_ids[-1].unsqueeze(0).repeat(num_imgs_per_batch, 1).to(device)  # [N, 69]
 
-        "并行推理"
-        # 获取独立元素的索引
+        "Parallel reasoning"
+        # Get the index of a single element
         input_ids_shape = [input_ids_i.shape[1] for input_ids_i in input_ids]
         input_ids_shape_np = np.array(input_ids_shape)
         _, unique_indices = np.unique(input_ids_shape_np, return_index=True)
@@ -508,7 +501,7 @@ class Reason_Seg:
                 masks.append(pred_masks[i].sigmoid() > 0.5)
                 # print((pred_masks[i].sigmoid() > 0.8).sum() / (pred_masks[i].sigmoid() > 0.5).sum())
 
-            # 填入
+            # Fill in
             count = -1
             for idx, input_ids_shape_i in enumerate(input_ids_shape):
                 if input_ids_shape_i == uni_i:
@@ -519,19 +512,19 @@ class Reason_Seg:
                     final_out_text_feats[idx] = out_text_feats[count*num_imgs_per_batch:(count + 1)*num_imgs_per_batch]
                     final_out_img_feats[idx] = out_img_feats[count*num_imgs_per_batch:(count + 1)*num_imgs_per_batch]
 
-        # 整理
+        # tidy
         final_response = [item for sublist in final_response for item in sublist]
         final_masks = [item for sublist in final_masks for item in sublist]
         final_out_text_feats = [item for sublist in final_out_text_feats for item in sublist]
         final_out_img_feats = torch.cat(final_out_img_feats, dim=0)
 
-        # # 取最大连通区域
+        # # Take the largest connected area
         # for mask_i in range(len(final_masks)):
         #     for mask_j in range(len(final_masks[mask_i])):
         #         mask_tmp = keep_two_largest_connected_regions(final_masks[mask_i][mask_j].cpu().numpy())
         #         final_masks[mask_i][mask_j] = torch.from_numpy(mask_tmp).to(device)
 
-        "*************   保存预测结果   *************"
+        "*************   save   *************"
         # for i, response_i in enumerate(final_response):
         #     print(i, response_i)
 
@@ -545,11 +538,9 @@ class Reason_Seg:
         #         print("{} has been saved.".format(save_path))
 
         #     else:
-        #         # 随机生成 RGB 颜色
         #         # num_colors = 10
         #         # colors = [np.random.randint(0, 256, size=3) for _ in range(num_colors)]
         #         # colors = [np.array(color) for color in colors]
-        #         # 使用固定颜色
         #         colors = [
         #             np.array([255, 0, 0]),      # 红色
         #             np.array([0, 255, 0]),      # 绿色
@@ -597,23 +588,17 @@ class Reason_Seg:
     
 
 def keep_two_largest_connected_regions(mask):
-    # 标记连通区域
     labeled_mask, num_features = label(mask)
 
-    # 如果没有连通区域，返回原始mask
     if num_features == 0:
         return mask
     
-    # 计算每个区域的大小
     region_sizes = [(i, np.sum(labeled_mask == i)) for i in range(1, num_features + 1)]
     
-    # 找到前n个最大的区域
     largest_two_regions = sorted(region_sizes, key=lambda x: x[1], reverse=True)[:1]
     
-    # 获取前两个最大区域的标签
     largest_two_labels = {region[0] for region in largest_two_regions}
 
-    # 创建一个新的mask，保留前两个最大的区域
     largest_two_mask = np.isin(labeled_mask, list(largest_two_labels))
 
     return largest_two_mask
