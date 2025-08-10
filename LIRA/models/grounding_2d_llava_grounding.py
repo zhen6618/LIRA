@@ -459,14 +459,14 @@ def grounding_2d_debug():
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image_data = {"image": image}
 
-    history = []  # 初始的history列表，在这个场景下应该是空的，因为没有先前的交互
-    history = add_image(history, image_data)  # 调用add_image函数来更新history列表
+    history = []  # The initial history list should be empty in this scenario because there was no previous interaction
+    history = add_image(history, image_data)  # Call the add_image function to update the history list
 
     threshold_slider = 0.05
     temporature_slider = 0.0
     interaction_selector = "Click"
 
-    # 调用add_text函数来添加文本到history列表中
+    # Call the add_text function to add text to the history list
     grounding_infos, history = add_text(our_chatbot, history, text, image_data, threshold_slider, temporature_slider, interaction_selector, colors)
 
     print(history)
@@ -498,14 +498,14 @@ class Grounding_2D:
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image_data = {"image": image}
 
-        history = []  # # 初始的history列表，在这个场景下应该是空的，因为没有先前的交互
-        history = add_image(history, image_data)  # 调用add_image函数来更新history列表
+        history = []  # # The initial history list should be empty in this scenario because there was no previous interaction
+        history = add_image(history, image_data)  # Call the add_image function to update the history list
 
         threshold_slider = 0.05
         temporature_slider = 0.0
         interaction_selector = "Click"
 
-        # 调用add_text函数来添加文本到history列表中
+        # Call the add_text function to add text to the history list
         grounding_infos, history = add_text(self.our_chatbot, history, text, image_data, threshold_slider, temporature_slider, interaction_selector, self.colors)
 
         print(history)
@@ -545,14 +545,13 @@ if __name__ == "__main__":
     # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     # image_data = {"image": image}
 
-    # history = []  # # 初始的history列表，在这个场景下应该是空的，因为没有先前的交互
-    # history = add_image(history, image_data)  # 调用add_image函数来更新history列表
+    # history = []  
+    # history = add_image(history, image_data) 
 
     # threshold_slider = 0.05
     # temporature_slider = 0.0
     # interaction_selector = "Click"
 
-    # # 调用add_text函数来添加文本到history列表中
     # history = add_text(history, text, image_data, threshold_slider, temporature_slider, interaction_selector)
 
     # print(history)
