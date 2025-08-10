@@ -36,28 +36,15 @@ def get_mask_from_json(json_path, img, original_size):
             continue
         
         masks = []
-        for pot in points:  # 有几个pot，就有几个instance
+        for pot in points:  # There are as many instances as there are pints
             mask = np.zeros((original_size[0], original_size[1]), dtype=np.uint8)
             for polygon in pot:
-                polygon = np.array(polygon).reshape(-1, 2)  # 将平展的点转换为 (x, y) 的形状
-                cv2.fillPoly(mask, [polygon.astype(np.int32)], 1)  # 1 表示前景  在mask上填充多边形区域
-            mask = resize(mask.astype('float'), (1024, 1024), order=1, mode="constant", anti_aliasing=False)  # resize后变成浮点数
+                polygon = np.array(polygon).reshape(-1, 2)  # Convert the flattened points to the shape of (x, y)
+                cv2.fillPoly(mask, [polygon.astype(np.int32)], 1)  # 1 represents the foreground, filling the polygonal area on the mask
+            mask = resize(mask.astype('float'), (1024, 1024), order=1, mode="constant", anti_aliasing=False)
             mask[mask >= 0.5] = 1
             mask[mask < 0.5] = 0
             masks.append(mask)
-
-        # # 按照从左上到右下的顺序，给mask排序
-        # if len(masks) > 1:
-        #     # 计算 mask 的中心点
-        #     def get_center(mask):
-        #         coords = np.argwhere(mask == 1)  # 找到 mask 中所有非零点的坐标
-        #         center = coords.mean(axis=0)  # 计算中心点坐标
-        #         return tuple(center)
-
-        #     masks = sorted(masks, key=get_center)  # 根据中心点的 y, x 坐标排序，从左上到右下
-        #     # # 查看排序后的结果
-        #     # for m in masks:
-        #     #     print(get_center(m))  # 输出中心点坐标，检查是否按顺序排列
 
         for mi in range(len(masks)):
             masks[mi] = np.expand_dims(masks[mi], axis=0)
