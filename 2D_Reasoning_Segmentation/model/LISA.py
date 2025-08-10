@@ -218,9 +218,9 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
                 output_hidden_states.append(output_i.hidden_states)
 
                 'for BLEU '
-                # 获取"ASSISTANT:"及其之前的ids, tokenizer.encode("ASSISTANT:")的id为[319,  1799,  9047, 13566, 29901]
+                # Get the ids before and including "ASSISTANT:" tokenizer.encode("ASSISTANT:")的id为[319,  1799,  9047, 13566, 29901]
                 target_sequence_empty = torch.tensor([319, 1799, 9047, 13566, 29901], device=input_ids.device)
-                window_size_empty = target_sequence_empty.shape[0]  # 构造滑动窗口并比较
+                window_size_empty = target_sequence_empty.shape[0]  # Construct a sliding window and compare
                 match_empty = (input_ids[0].unfold(0, window_size_empty, 1) == target_sequence_empty).all(dim=1)
                 match_int_empty = match_empty.int()
                 start_idx_empty = torch.argmax(match_int_empty).item()
@@ -259,7 +259,7 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
                 images_clip_list.append(images_clip_i)  
             images_clip = torch.cat(images_clip_list, dim=0)  
 
-            output = super().forward(  # 自回归推理 + LM loss计算
+            output = super().forward(  # Autoregressive Inference + LM Loss Calculation
                 images=images_clip,
                 attention_mask=attention_masks,
                 input_ids=input_ids,
@@ -274,7 +274,7 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
         hidden_states.append(self.model.text_hidden_fcs[0](output_hidden_states[-1]))
 
         last_hidden_state = torch.stack(hidden_states, dim=-1).sum(dim=-1)
-        pred_embeddings = last_hidden_state[seg_token_mask]  # 取出segment token的embedding
+        pred_embeddings = last_hidden_state[seg_token_mask]  # Extract the embedding of the segment token
         seg_token_counts = seg_token_mask.int().sum(-1) 
 
         seg_token_offset = seg_token_counts.cumsum(-1) 
@@ -288,7 +288,7 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
         for i in range(len(seg_token_offset) - 1):
             start_i, end_i = seg_token_offset[i], seg_token_offset[i + 1]
             pred_embeddings_.append(pred_embeddings[start_i:end_i])
-        pred_embeddings = pred_embeddings_  # 分成batch，如batch=2, 每个有3
+        pred_embeddings = pred_embeddings_  # Divide into batches. For example, if batch=2, each batch has 3
 
         multimask_output = False
         pred_masks = []
@@ -315,7 +315,7 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
                 input_size=resize_list[i],
                 original_size=label_list[i].shape,
             )
-            pred_masks.append(pred_mask[:, 0])  # 输出3个mask，每个text_embdding(pred_embeddings)输出一个mask
+            pred_masks.append(pred_mask[:, 0])  Output 3 masks, and each text_embdding(pred_embeddings) outputs one mask
 
         model_output = output
         gt_masks = masks_list
