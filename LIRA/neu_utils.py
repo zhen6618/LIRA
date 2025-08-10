@@ -217,17 +217,17 @@ def prepare_ins(instance_volume, semantic_volume):
         mask = (instance_volume == ins)
         sem_ins = np.unique(semantic_volume[mask])
         
-        if sem_ins == 0 or sem_ins == 1 or sem_ins == 2:  # 排除空类别和背景类别
+        if sem_ins == 0 or sem_ins == 1 or sem_ins == 2:  # Exclude empty and background categories
             continue
         
-        # 将实例id和语义标签存储到字典中
+        # Store instance id and semantic label in dictionary
         ins_pos_all = np.argwhere(mask)
         ins_center = np.mean(ins_pos_all, axis=0)
         instance_ids.append(ins)
         semantic_ids.append(sem_ins.item())
         pos.append(np.round(ins_center, decimals=2))
 
-        # 序号-类别替换
+        # Serial number-category replacement
         sem_label = semantic_dict.get(sem_ins.item(), 'Unknown')
         semantic_classes.append(sem_label)
 
@@ -251,10 +251,10 @@ def prepare_ins(instance_volume, semantic_volume):
 
 def ins_to_llm(instance_volume, semantic_volume):
 
-    # 1(1)-wall  2(2)-floor  3(3)-cabinet(储物柜)  4(4)-bed  5(5)-chair
+    # 1(1)-wall  2(2)-floor  3(3)-cabinet  4(4)-bed  5(5)-chair
     # 6(6)-sofa  7(7)-table  8(8)-door  9(9)-window  10(10)-bookshelf
-    # 11(11)-picture  12(12)-counter(柜台)  13(14)-desk  14(16)-curtain(窗帘) 15(24)-refrigerator
-    # 16(28)-shower curtain  17(33)-toilet  18(34)-sink  19(36)-bathtub(浴缸)  20(39)-otherfurniture
+    # 11(11)-picture  12(12)-counter  13(14)-desk  14(16)-curtain 15(24)-refrigerator
+    # 16(28)-shower curtain  17(33)-toilet  18(34)-sink  19(36)-bathtub  20(39)-otherfurniture
 
     semantic_dict = {
         1: 'wall', 2: 'floor', 3: 'cabinet', 4: 'bed', 5: 'chair',
@@ -279,17 +279,15 @@ def ins_to_llm(instance_volume, semantic_volume):
         mask = (instance_volume == ins)
         sem_ins = np.unique(semantic_volume[mask])
         
-        if sem_ins == 0 or sem_ins == 1 or sem_ins == 2:  # 排除空类别和背景类别
+        if sem_ins == 0 or sem_ins == 1 or sem_ins == 2:  
             continue
         
-        # 将实例id和语义标签存储到字典中
         ins_pos_all = np.argwhere(mask)
         ins_center = np.mean(ins_pos_all, axis=0)
         instance_ids.append(ins)
         semantic_ids.append(sem_ins.item())
         pos.append(np.round(ins_center, decimals=2))
 
-        # 序号-类别替换
         sem_label = semantic_dict.get(sem_ins.item(), 'Unknown')
         semantic_classes.append(sem_label)
 
@@ -364,11 +362,11 @@ class SaveScene(object):
 
     @staticmethod
     def tsdf_ins2mesh(voxel_size, origin, tsdf_vol, semantic_vol, instance_vol):
-        verts, faces, norms, vals = measure.marching_cubes(tsdf_vol, level=0)  # level: 等值面的标量值，函数将提取此标量值对应的表面
+        verts, faces, norms, vals = measure.marching_cubes(tsdf_vol, level=0)  
 
         # semantic & instance
-        rounded_verts = np.round(verts).astype(int)  # 将顶点坐标四舍五入到最近的整数以用作索引
-        rounded_verts = np.clip(rounded_verts, [0, 0, 0], np.array(semantic_vol.shape) - 1)  # 修正边界外的索引
+        rounded_verts = np.round(verts).astype(int)  
+        rounded_verts = np.clip(rounded_verts, [0, 0, 0], np.array(semantic_vol.shape) - 1) 
         semantics = semantic_vol[rounded_verts[:, 0], rounded_verts[:, 1], rounded_verts[:, 2]]
         instances = instance_vol[rounded_verts[:, 0], rounded_verts[:, 1], rounded_verts[:, 2]]
 
@@ -398,35 +396,29 @@ class SaveScene(object):
         color_palette = np.array(color_palette)
         num_colors = len(color_palette)
 
-        # 将语义标签映射到预定义的颜色上
         semantic_colors = color_palette[semantics.astype(int)]
 
-        # 将实例标签映射到预定义的颜色上（循环复用颜色）
         instances_mapped = instances % num_colors
         instance_colors = color_palette[instances_mapped.astype(int)]
 
-        # 复制 mesh 并赋予顶点颜色
         mesh_semantic = deepcopy(mesh)
         mesh_instance = deepcopy(mesh)
 
-        # 设置语义颜色
         mesh_semantic.visual.vertex_colors = semantic_colors
-        # 设置实例颜色
         mesh_instance.visual.vertex_colors = instance_colors
 
-        # # semantic 把semantic当成颜色去可视化
         # mesh_semantic = deepcopy(mesh)
         # cmap = plt.get_cmap('jet')
-        # norm = Normalize(vmin=np.min(semantics), vmax=np.max(semantics))  # 将语义标签归一化到 [0, 1] 范围内
-        # colors = cmap(norm(semantics))  # 根据 colormap 将标签映射到颜色
-        # mesh_semantic.visual.vertex_colors = colors[:, :3] * 255  # 将颜色转换为 [0, 255] 范围内的整数值
+        # norm = Normalize(vmin=np.min(semantics), vmax=np.max(semantics))  
+        # colors = cmap(norm(semantics)) 
+        # mesh_semantic.visual.vertex_colors = colors[:, :3] * 255 
         #
         # # instance
         # mesh_instance = deepcopy(mesh)
         # cmap = plt.get_cmap('jet')
-        # norm = Normalize(vmin=np.min(instances), vmax=np.max(instances))  # 将语义标签归一化到 [0, 1] 范围内
-        # colors = cmap(norm(instances))  # 根据 colormap 将标签映射到颜色
-        # mesh_instance.visual.vertex_colors = colors[:, :3] * 255  # 将颜色转换为 [0, 255] 范围内的整数值
+        # norm = Normalize(vmin=np.min(instances), vmax=np.max(instances))  
+        # colors = cmap(norm(instances)) 
+        # mesh_instance.visual.vertex_colors = colors[:, :3] * 255 
 
         return mesh, mesh_semantic, mesh_instance
 
@@ -508,11 +500,11 @@ class SaveScene(object):
         semantic_volume = outputs['scene_semantic'][batch_idx].data.cpu().numpy()
         origin = outputs['origin'][batch_idx].data.cpu().numpy()
 
-        """  # 只可视化目标instances 
-        # 找到 unique instances
+        """  # only visualize target instances 
+        # find unique instances
         instance_ids, semantic_ids, semantic_classes, pos = prepare_ins(instance_volume, semantic_volume)  # semantic - position
 
-        # 只可视化目标instances
+        # only visualize target instances 
         target_instances = 9.0  # second door closest to the toilet: 16.0
         instance_volume, semantic_volume = select_target_instances(instance_volume, semantic_volume, target_instances)
         """
@@ -539,17 +531,17 @@ class SaveScene(object):
             mesh_semantic.export(os.path.join(save_path, 'mesh_semantic_{}.ply'.format(self.scene_name)))
             mesh_instance.export(os.path.join(save_path, 'mesh_instance_{}.ply'.format(self.scene_name)))
 
-            """ 结构化数据, 输出传递给LLM推理 """
+            """ Structured data, output passed to LLM reasoning """
             save_path_to_llm = "./LLaMA-Factory/To_LLM"
-            np.savez_compressed(os.path.join(save_path_to_llm, '{}.npz'.format(self.scene_name)), **data)  # tsdf, semantic, instance数据保存到LLM推理目录
+            np.savez_compressed(os.path.join(save_path_to_llm, '{}.npz'.format(self.scene_name)), **data)  # tsdf, semantic, instanceData is saved to the LLM reasoning directory
 
             ins_to_llm_text = ins_to_llm(instance_volume, semantic_volume)  # e.g., {'0 refrigerator': [13.3, 12.54, 24.25], ...}
-            ins_to_llm_text = json.dumps(ins_to_llm_text)  # 将字典转换为字符串
+            ins_to_llm_text = json.dumps(ins_to_llm_text)  
 
-            ins_to_llm_text = "Here are some objects of the room and their numbers and locations. " + ins_to_llm_text  # 拼接系统提示
+            ins_to_llm_text = "Here are some objects of the room and their numbers and locations. " + ins_to_llm_text  
             # demand_text = outputs['demand_text']
             demand_text = " How many refrigerators are there? where are they? "
-            ins_to_llm_text = ins_to_llm_text + demand_text  # 拼接语言需求
+            ins_to_llm_text = ins_to_llm_text + demand_text  
 
             with open(os.path.join(save_path_to_llm, '{}_ins_to_llm_text.json'.format(self.scene_name)), 'w') as f:
                 json.dump(ins_to_llm_text, f)
