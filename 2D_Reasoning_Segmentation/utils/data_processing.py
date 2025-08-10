@@ -39,38 +39,37 @@ def get_mask_from_json(json_path, img, original_size):
             continue
         
         masks = []
-        for pot in points:  # 有几个pot，就有几个instance
+        for pot in points:  # There are as many instances as there are POTS
             mask = np.zeros((original_size[0], original_size[1]), dtype=np.uint8)
             for polygon in pot:
-                polygon = np.array(polygon).reshape(-1, 2)  # 将平展的点转换为 (x, y) 的形状
-                cv2.fillPoly(mask, [polygon.astype(np.int32)], 1)  # 1 表示前景  在mask上填充多边形区域
-            mask = resize(mask.astype('float'), (1024, 1024), order=1, mode="constant", anti_aliasing=False)  # resize后变成浮点数
+                polygon = np.array(polygon).reshape(-1, 2)  # Transform the flattened points into the shape of (x, y)
+                cv2.fillPoly(mask, [polygon.astype(np.int32)], 1)  # 1 indicates that the foreground is filled with a polygonal area on the mask
+            mask = resize(mask.astype('float'), (1024, 1024), order=1, mode="constant", anti_aliasing=False)  # After resize, it becomes a floating-point number
             mask[mask >= 0.5] = 1
             mask[mask < 0.5] = 0
             masks.append(mask)
 
-        # # 按照从左上到右下的顺序，给mask排序
+        # # Sort the masks in the order from top left to bottom right
         # if len(masks) > 1:
-        #     # 计算 mask 的中心点
+        #     # Calculate the center point of the mask
         #     def get_center(mask):
-        #         coords = np.argwhere(mask == 1)  # 找到 mask 中所有非零点的坐标
-        #         center = coords.mean(axis=0)  # 计算中心点坐标
+        #         coords = np.argwhere(mask == 1)  # Find the coordinates of all non-zero points in the mask
+        #         center = coords.mean(axis=0)  
         #         return tuple(center)
 
-        #     masks = sorted(masks, key=get_center)  # 根据中心点的 y, x 坐标排序，从左上到右下
-        #     # # 查看排序后的结果
+        #     masks = sorted(masks, key=get_center)  # Sort according to the y and x coordinates of the center point, from top left to bottom right
         #     # for m in masks:
-        #     #     print(get_center(m))  # 输出中心点坐标，检查是否按顺序排列
+        #     #     print(get_center(m))  # Output the coordinates of the center point and check if they are arranged in sequence
 
         for mi in range(len(masks)):
             masks[mi] = np.expand_dims(masks[mi], axis=0)
         masks = np.concatenate(masks, axis=0)
     # import pdb;pdb.set_trace()
 
-    '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   开放词汇   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+    '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   Open vocabulary   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
     # open_vocab = True
     # if open_vocab:
-    #     comments = deepcopy(anno["outputs"])  # 使用正则表达式去除 [SEG] 和其前后的空格
+    #     comments = deepcopy(anno["outputs"])  # Use regular expressions to remove [SEG] and the Spaces before and after it
     #     comments = re.sub(r'\s*\[SEG\]\s*', '', comments)
     #     comments = [comments]
 
@@ -94,33 +93,26 @@ furniture_dict = {
     'bathtub': '浴缸'
 }
 
-# 生成一个唯一的uuid
 def generate_uuid():
     return str(uuid.uuid4())
 
-# 将mask转为多边形
+# Convert the mask to a polygon
 def mask_to_polygon(mask):
-    # 将mask转为二值图像（假设mask是灰度图或二值图）
     _, binary_mask = cv2.threshold(mask * 255, 127, 255, cv2.THRESH_BINARY)
-
-    # 确保binary_mask是uint8类型
+    
     binary_mask = binary_mask.astype(np.uint8)
 
-    # 查找轮廓
     contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # 如果找到了轮廓
     if contours:
-        # 选择最长的轮廓，按照周长计算，确保传递了`closed=True`
         longest_contour = max(contours, key=lambda contour: cv2.arcLength(contour, closed=True))
         
-        # 将轮廓点转换为多边形形式
         approx_polygon = cv2.approxPolyDP(longest_contour, epsilon=2, closed=True)
         return approx_polygon
 
-    return []  # 如果没有轮廓，返回空列表
+    return []  
 
-# 转换为JSON格式
+# Convert to JSON format
 def mask_to_json(mask, mask_type, text, template):
     mask = mask.astype(np.uint8)
     elements = []
@@ -157,8 +149,8 @@ if __name__ == "__main__":
         if not os.path.exists(vis_dir):
             os.makedirs(vis_dir)
 
-        # 模板
-        with open('2D_答案.json', 'r', encoding='utf-8') as file:
+        # "Template
+        with open('2D_answer.json', 'r', encoding='utf-8') as file:
             template = json.load(file)
 
         json_path_list = sorted(glob.glob(data_dir + "/*.json"))
@@ -194,7 +186,7 @@ if __name__ == "__main__":
                     print("Over images")
                     break
                 
-                '-----------------------------  用于标注 start  -----------------------------'
+                '-----------------------------  For annotation start  -----------------------------'
                 text_label = [match.strip() for match in re.findall(r'\b(\w+)\s(?=\[SEG\])', anno_json['outputs'])]
                 text_label_CN = [furniture_dict[text_l] for text_l in text_label] 
 
@@ -209,7 +201,7 @@ if __name__ == "__main__":
                 image_links.append([])
                 image_attributes.append(json_out)
 
-                '-----------------------------  用于标注 end -----------------------------'
+                '-----------------------------  For annotation end -----------------------------'
 
                 np.random.seed(0)  # For consistent color selection
                 colors = np.random.randint(0, 255, size=(mask.shape[0], 3))
@@ -240,19 +232,16 @@ if __name__ == "__main__":
                 # mapping_left.append(f'{count}.jpg') 
                 # mapping_right.append(text_label)
 
-        '-----------------------------  用于标注 start  -----------------------------'
+        '-----------------------------  For annotation start  -----------------------------'
         with open(os.path.join(vis_dir, 'infos.txt'), "w", encoding="utf-8") as file:
             for i in range(len(image_names)):
-                # 将属性字典转换为 JSON 格式的字符串（以便更清晰地表示复杂数据）
                 attributes_str = json.dumps(image_attributes[i], ensure_ascii=False)
                 
-                # 写入每一行的数据：图片名、图片链接、属性信息
                 file.write(f"{image_names[i]}   {image_links[i]}   {attributes_str}\n")
-        '-----------------------------  用于标注 end -----------------------------'
+        '-----------------------------  For annotation end -----------------------------'
 
         # with open(os.path.join(vis_dir, 'mapping.txt'), 'w', encoding='utf-8') as file:
         #     for l, r in zip(mapping_left, mapping_right):
-        #         # 生成要写入的内容，使用空格进行分隔
         #         line_content = f"{l}{' ' * 5}{r}\n"
         #         file.write(line_content)
 
@@ -343,7 +332,7 @@ if __name__ == "__main__":
     # label_array = np.array(label_image)
 
     # unique_label_array = np.unique(label_array)
-    # label_mapping = {val: i + 1 for i, val in enumerate(unique_label_array)}  # unique映射为正整数
+    # label_mapping = {val: i + 1 for i, val in enumerate(unique_label_array)}  
     # label_array = np.vectorize(label_mapping.get)(label_array)
 
     # color_label = np.zeros((label_array.shape[0], label_array.shape[1], 3), dtype=np.uint8)
@@ -358,7 +347,7 @@ if __name__ == "__main__":
 
     # print("Done.")
 
-    '-----------------------------  SAM 点分割 -----------------------------'
+    '-----------------------------  SAM point segmentation -----------------------------'
     image = Image.open('vs_scannet_3.png')
 
     sam_image = image.convert("RGB")
@@ -374,45 +363,44 @@ if __name__ == "__main__":
     # sam_input_point = np.array([[500, 375], [1125, 625]])
     sam_input_point = np.array([[300, 300], [600, 100], [450, 200]])  # (x, y)
 
-    # 逐步添加点并更新掩膜
+    # Gradually add points and update the mask
     input_point = np.zeros((0, 2)) 
     input_label = np.zeros((0))
 
-    # 存储初始掩膜
+    # Store the initial mask
     sam_masks = None
     sam_masks_input = None
 
     for sam_i in range(len(sam_input_point)):
-        # 添加新点
+        # Add new points
         input_point = np.concatenate((input_point, [sam_input_point[sam_i]]), axis=0)
         input_label = np.concatenate((input_label, [1]), axis=0)  # 1表示positive point, 0表示negative point
 
-        if sam_masks is None:  # 如果是第一次添加点，则直接进行推理
+        if sam_masks is None:  # If it is the first time to add a point, then proceed with the reasoning directly
             sam_masks, scores, logits = sam_predictor.predict(
-                point_coords=input_point,        # 输入坐标点
-                point_labels=input_label,         # 输入点标签
-                multimask_output=True             # 获取多个掩膜候选
+                point_coords=input_point,       
+                point_labels=input_label,        
+                multimask_output=True            
             )
-        elif sam_i != len(sam_input_point) - 1:   # 使用之前的掩膜与当前点一起进行推理
-            sam_masks_input = logits[np.argmax(scores), :, :]  # 选择上一次最好的掩膜
+        elif sam_i != len(sam_input_point) - 1:   # Use the previous mask to reason with the current point
+            sam_masks_input = logits[np.argmax(scores), :, :] 
             sam_masks, scores, logits = sam_predictor.predict(
-                point_coords=input_point,         # 输入坐标点
-                point_labels=input_label,         # 输入点标签
-                mask_input=sam_masks_input[None, :, :],# 将上次的掩膜作为提示
-                multimask_output=True            # 获取多个掩膜候选
+                point_coords=input_point,        
+                point_labels=input_label,       
+                mask_input=sam_masks_input[None, :, :]
+                multimask_output=True           
             )
-        else:  # 最后一次推理
-            sam_masks_input = logits[np.argmax(scores), :, :]  # 选择上一次最好的掩膜
+        else:  # The last reasoning
+            sam_masks_input = logits[np.argmax(scores), :, :]  # Choose the best mask from the last time
             sam_masks, scores, logits = sam_predictor.predict(
-                point_coords=input_point,         # 输入坐标点
-                point_labels=input_label,         # 输入点标签
-                mask_input=sam_masks_input[None, :, :],# 将上次的掩膜作为提示
-                multimask_output=False            # 输出单一掩膜
+                point_coords=input_point,        
+                point_labels=input_label,        
+                mask_input=sam_masks_input[None, :, :]
+                multimask_output=False            
             )
 
     sam_mask = sam_masks[0]
 
-    # 设置透明度 (0.0为完全透明, 1.0为完全不透明)
     alpha = 0.5
 
     image_data = np.array(image)
@@ -424,15 +412,13 @@ if __name__ == "__main__":
     overlayed = cv2.addWeighted(image_data, 1 - alpha, masked_red_image, alpha, 0)
     overlayed = cv2.cvtColor(overlayed, cv2.COLOR_BGR2RGB)
 
-    # 设置点的颜色和半径
     point_color = (0, 255, 0)  # 绿色
     point_radius = 5  # 点的半径
 
-    # # 在overlayed图像上绘制点
+    # # Draw points on the overlayed image
     # for point in sam_input_point:
-    #     # 注意OpenCV的坐标顺序是 (x, y)
     #     x, y = point
-    #     cv2.circle(overlayed, (x, y), point_radius, point_color, -1)  # -1表示填充圆形
+    #     cv2.circle(overlayed, (x, y), point_radius, point_color, -1)  
 
     cv2.imwrite("sam_point.png", overlayed)
 
