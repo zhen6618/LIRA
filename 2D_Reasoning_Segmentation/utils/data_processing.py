@@ -374,7 +374,7 @@ if __name__ == "__main__":
     for sam_i in range(len(sam_input_point)):
         # Add new points
         input_point = np.concatenate((input_point, [sam_input_point[sam_i]]), axis=0)
-        input_label = np.concatenate((input_label, [1]), axis=0)  # 1表示positive point, 0表示negative point
+        input_label = np.concatenate((input_label, [1]), axis=0)  # 1 represents a positive point and 0 represents a negative point
 
         if sam_masks is None:  # If it is the first time to add a point, then proceed with the reasoning directly
             sam_masks, scores, logits = sam_predictor.predict(
