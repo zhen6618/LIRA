@@ -32,8 +32,8 @@ class NeuConNet(nn.Module):
         self.n_scales = len(cfg.THRESHOLDS) - 1
 
         alpha = int(self.cfg.BACKBONE2D.ARC.split('-')[-1])
-        ch_in = [80 * alpha + 1, 96 + 40 * alpha + 2 + 1, 48 + 24 * alpha + 2 + 1, 24 + 24 + 2 + 1]  # [81, 139, 75, 51] (融合后的特征)
-        channels = [96, 48, 24]  # (融合后转换到预测之前的特征) -> 分辨率越大，特征维度应该越少
+        ch_in = [80 * alpha + 1, 96 + 40 * alpha + 2 + 1, 48 + 24 * alpha + 2 + 1, 24 + 24 + 2 + 1]  # [81, 139, 75, 51] (Features after fusion)
+        channels = [96, 48, 24]  
 
         if self.cfg.FUSION.FUSION_ON:
             # GRU Fusion
@@ -113,8 +113,8 @@ class NeuConNet(nn.Module):
 
         # ----gru fusion----
         if self.cfg.FUSION.FUSION_ON:
-            up_coords, tsdf_target, occ_target = self.gru_fusion(up_coords, inputs)  # up_coords: 索引
-            if self.cfg.FUSION.FULL:  # FULL表示由current和global(history)共同决定
+            up_coords, tsdf_target, occ_target = self.gru_fusion(up_coords, inputs)  # up_coords: index
+            if self.cfg.FUSION.FULL:  # FULL means it is determined by both current and global (history)
                 grid_mask = torch.ones_like(feat[:, 0]).bool()
 
         # visualization
@@ -144,26 +144,24 @@ class NeuConNet(nn.Module):
 
         # *********************************************** Grounding_2D ************************************************
         grounding_2d_text = "Find the refrigerator. (with grounding)"
-        # 到此为止，仅推理(neural_recon+llava_grounding)，用一张卡，占用显存18G
         grounding_infos = self.grounding_2d_model.inference(img_path=inputs['grounding_img_path'][0], text=grounding_2d_text)  
 
         ins_class, ins_box, ins_mask = [], [], []
-        # 提取所有的object_name
-        pattern = r"<g_s>\s*(.*?)\s*<g_e>\s*<seg>"  # 正则表达式匹配, (.*?) 代表非贪婪匹配尽可能少的字符，即提取出中间的object_name, \s* 用来匹配可能出现的空格。
+        pattern = r"<g_s>\s*(.*?)\s*<g_e>\s*<seg>"  #
         all_object_names = re.findall(pattern, grounding_infos['response_text'])
 
         for m in range(len(grounding_infos['response_mask'])):
             for n in range(len(grounding_infos['response_mask'][m])):
                 ins_class.append(all_object_names[m])
                 ins_box.append(grounding_infos['response_gd'][m][n])
-                ins_mask.append(grounding_infos['response_mask'][m][n])  # 256 * 256, 按照向x正方向和y正方向填充成方形区域，对于1296*968，在下方区域填充1/4后resize       
+                ins_mask.append(grounding_infos['response_mask'][m][n])  # 256 * 256, fill in a square area in the positive x and y directions. For 1296 * 968, fill 1/4 of the lower area and resize
 
-        # 将ins_mask映射到neural_recon的图像中
+        # Map ins_mask to the image of neural_recon
         for m in range(len(ins_mask)):
            ins_mask[m] = ins_mask[m][:ins_mask[m].shape[0]*3//4, :]
            ins_mask[m] = mask_reshape(input=ins_mask[m], target_size=feats.shape[-2:])
 
-        # 每个voxel对应实例类别 [num_ins, num_voxels]
+        # Each voxel corresponds to an instance category [num_ins, num_voxels]
         ins_volume = []
         for m in range(len(ins_mask)):
             ins_volume.append(ins_back_project(outputs['coords'], inputs['vol_origin_partial'], self.cfg.VOXEL_SIZE, 
@@ -174,8 +172,8 @@ class NeuConNet(nn.Module):
         label2mesh(outputs['coords'][:, 1:], tsdf_target[occupancy], tuple(x * (2 ** 2) for x in shape), ins_volume[0].float().unsqueeze(1), 'results/label_target.ply')
 
         """
-        将每个实例对应一个id:
-        list 0: (num_voxels), 每个voxel1对应一个id, 0表示背景
+        Assign each instance an id:
+        list 0: (num_voxels), Each voxel1 corresponds to an id, 0 represents the background
         list 1: 
             list 0: dict: {'id': 1, 'category_id': 15}
             ...
@@ -249,68 +247,59 @@ class NeuConNet(nn.Module):
 
 def tsdf2mesh(coords, tsdf, dim_list, save_path):
     tsdf = tsdf.view(-1).detach()
-    tsdf_volume = sparse_to_dense_torch(coords.long(), tsdf, dim_list, 100, tsdf.device, final_tsdf=True)  # 最后的tsdf需要用-1和1填充
+    tsdf_volume = sparse_to_dense_torch(coords.long(), tsdf, dim_list, 100, tsdf.device, final_tsdf=True) 
     tsdf_volume = tsdf_volume.cpu().numpy()
 
-    verts, faces, norms, vals = measure.marching_cubes(tsdf_volume, level=0)  # level: 等值面的标量值，函数将提取此标量值对应的表面
+    verts, faces, norms, vals = measure.marching_cubes(tsdf_volume, level=0)  
     mesh = trimesh.Trimesh(vertices=verts, faces=faces, vertex_normals=norms)
     mesh.export(save_path)
 
 def label2mesh(coords, tsdf, dim_list, label, save_path):
     tsdf = tsdf.view(-1).detach()
-    tsdf_volume = sparse_to_dense_torch(coords.long(), tsdf, dim_list, 100, tsdf.device, final_tsdf=True)  # 最后的tsdf需要用-1和1填充
+    tsdf_volume = sparse_to_dense_torch(coords.long(), tsdf, dim_list, 100, tsdf.device, final_tsdf=True)  
     tsdf_volume = tsdf_volume.cpu().numpy()
 
     label = label.view(-1).detach()
-    label_volume = sparse_to_dense_torch(coords.long(), label, dim_list, 0, label.device, final_tsdf=False)  # 0填充
+    label_volume = sparse_to_dense_torch(coords.long(), label, dim_list, 0, label.device, final_tsdf=False)  
     label_volume = label_volume.cpu().numpy()
 
-    # Step 1: 提取mesh
-    verts, faces, norms, vals = measure.marching_cubes(tsdf_volume, level=0)  # level: 等值面的标量值，函数将提取此标量值对应的表面
+    verts, faces, norms, vals = measure.marching_cubes(tsdf_volume, level=0) 
     mesh = trimesh.Trimesh(vertices=verts, faces=faces, vertex_normals=norms)
 
-    # Step 2: 将label映射到mesh的顶点
-    # 使用最近邻插值，找到每个顶点在 label_volume 中对应的坐标，并获取标签
-    verts_scaled = (verts / np.array(tsdf_volume.shape)) * np.array(label_volume.shape)  # 缩放顶点到label_volume的范围
-    verts_indices = np.round(verts_scaled).astype(int)  # 取最近邻的整数索引
-    verts_indices = np.clip(verts_indices, 0, np.array(label_volume.shape) - 1)  # 防止越界
+    verts_scaled = (verts / np.array(tsdf_volume.shape)) * np.array(label_volume.shape)  
+    verts_indices = np.round(verts_scaled).astype(int)  
+    verts_indices = np.clip(verts_indices, 0, np.array(label_volume.shape) - 1)  
     vertex_labels = label_volume[verts_indices[:, 0], verts_indices[:, 1], verts_indices[:, 2]]
 
-    # Step 3: 给每个标签分配颜色
     unique_labels = np.unique(vertex_labels)
-    # 使用colormap为不同的label生成颜色
-    colormap = cm.get_cmap('tab20', len(unique_labels))  # 可以选择其他的colormap，比如 'jet'， 'viridis' 等
-    # 定义标签到颜色的映射，类别0强制为黑色，其余类别使用colormap
+    colormap = cm.get_cmap('tab20', len(unique_labels)) 
     label_to_color = {}
     for i, label in enumerate(unique_labels):
         if label == 0:
-            label_to_color[label] = np.array([192, 192, 192], dtype=np.uint8)  # 类别0为黑色
+            label_to_color[label] = np.array([192, 192, 192], dtype=np.uint8)  
         else:
             label_to_color[label] = (np.array(colormap(i)[:3]) * 255).astype(np.uint8)
     
-    
-    # 为每个顶点分配颜色
     vertex_colors = np.array([label_to_color[label] for label in vertex_labels])
 
-    # Step 4: 保存到PLY文件，包括顶点、面片、法线和颜色
     mesh.visual.vertex_colors = vertex_colors
     mesh.export(save_path)
 
 
 def sparse_to_dense_torch(locs, values, dim, default_val, device, final_tsdf=False):
 
-    if final_tsdf:  # 最后的tsdf需要用最近邻-1和1填充
+    if final_tsdf:  
         # default_val = 100
         # dense = torch.full([dim[0], dim[1], dim[2]], default_val, device=device).to(values.dtype)
         # if locs.shape[0] > 0:
         #     dense[locs[:, 0], locs[:, 1], locs[:, 2]] = values
         #
-        # mask = dense == default_val  # 需要被换掉的值
+        # mask = dense == default_val  
         #
         # dense, mask = dense.cpu().numpy(), mask.cpu().numpy()
-        # distance, indices = ndimage.distance_transform_edt(mask, return_indices=True)  # 计算距离变换，得到每个点到最近的不需要被替换点的距离
-        # nearest_values = dense[tuple(indices)]  # 使用indices映射，找到每个点最近的不需要被替换的点的值
-        # dense[mask] = np.where(nearest_values[mask] >= 0, 1, -1)  # 根据最近点的值来决定替换值，正数替换为1，负数替换为-1
+        # distance, indices = ndimage.distance_transform_edt(mask, return_indices=True)  
+        # nearest_values = dense[tuple(indices)]  
+        # dense[mask] = np.where(nearest_values[mask] >= 0, 1, -1)  
         # dense = torch.from_numpy(dense).to(device)
 
         default_val = 1
