@@ -62,14 +62,14 @@ class MnasMulti(nn.Module):
         # for layer in self.conv0:
         #     temp = layer(temp)
 
-        # # 检查运行均值和方差
+        # # Check the running mean and variance
         # for layer in self.conv0.modules():
         #     if isinstance(layer, torch.nn.BatchNorm2d):
         #         print('BatchNorm2d running_mean: ', layer.running_mean)
         #         print('BatchNorm2d running_var: ', layer.running_var)
         #         break
 
-        conv0 = self.conv0(x)  # model.train()和model.eval()模式下，BN层的输出不一样
+        conv0 = self.conv0(x)  # model.train() and model.eval() mode, the output of the BN layer is different
         conv1 = self.conv1(conv0)
         conv2 = self.conv2(conv1)
 
