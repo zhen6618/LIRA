@@ -224,98 +224,90 @@ class ConvGRU(nn.Module):
 
 # def keep_largest_connected_region_3d(coords: torch.Tensor, mask: torch.Tensor, grid_shape: tuple) -> torch.Tensor:
 #     """
-#     保留每个连通区域中体积最大的区域，去除其他小区域。
+#     Keep the largest volume region among each connected component, removing other smaller regions.
     
-#     参数:
-#         coords (torch.Tensor): 体素坐标，形状为 (N, 3)，每行是一个 (x, y, z) 坐标。
-#         mask (torch.Tensor): 体素掩码，形状为 (N,)，表示每个体素是否有效。
-#         grid_shape (tuple): 3D 网格的大小 (D, H, W)，即体素网格的维度。
+#     Args:
+#         coords (torch.Tensor): Voxel coordinates with shape (N, 3), each row is an (x, y, z) coordinate.
+#         mask (torch.Tensor): Voxel mask with shape (N,), indicating whether each voxel is valid.
+#         grid_shape (tuple): Size of the 3D grid (D, H, W), i.e., dimensions of the voxel grid.
         
-#     返回:
-#         torch.Tensor: 只保留每个连通区域中最大体积区域的掩码，形状为 (N,)，类型为 torch.bool。
+#     Returns:
+#         torch.Tensor: Mask retaining only the largest volume region among each connected component, 
+#                       with shape (N,) and type torch.bool.
 #     """
-#     # 将有效体素的坐标提取出来
+#     # Extract coordinates of valid voxels
 #     valid_coords = coords[mask].cpu()
     
 #     if valid_coords.size(0) == 0:
-#         return torch.zeros(mask.size(0), dtype=mask.dtype, device=mask.device)  # 如果没有有效体素，返回全 False 的掩码
+#         return torch.zeros(mask.size(0), dtype=mask.dtype, device=mask.device)  # Return all False mask if no valid voxels
     
-#     # 创建 3D 网格，初始化为 0
-#     grid = np.zeros(grid_shape, dtype=int)  # 使用 0 初始化，之后用标签表示连通区域
+#     # Create 3D grid initialized with 0
+#     grid = np.zeros(grid_shape, dtype=int)  # Initialize with 0, later use labels for connected regions
     
-#     # 将有效体素坐标映射到 3D 网格中，索引为有效体素的位置
+#     # Map valid voxel coordinates to 3D grid, indexing at valid voxel positions
 #     z, y, x = valid_coords[:, 0].int().numpy(), valid_coords[:, 1].int().numpy(), valid_coords[:, 2].int().numpy()
-#     grid[z, y, x] = 1  # 在 3D 网格中标记有效体素的位置为 1
+#     grid[z, y, x] = 1  # Mark positions of valid voxels as 1 in 3D grid
     
-#     # 生成 26-连通的结构元素（3D）
-#     structure = generate_binary_structure(3, 3)  # 26-连通
+#     # Generate 26-connected structural element (3D)
+#     structure = generate_binary_structure(3, 3)  # 26-connectivity
     
-#     # 使用 scipy.ndimage.label 对 3D 网格进行连通区域标记
+#     # Use scipy.ndimage.label to mark connected regions in 3D grid
 #     labeled_mask, num_labels = label(grid, structure)
     
-#     # 计算每个连通区域的体积（即体素数）
+#     # Calculate volume (number of voxels) for each connected region
 #     region_sizes = np.bincount(labeled_mask.ravel())
     
-#     # 找到最大体积的区域（排除背景区域，背景标签为0）
-#     max_label = region_sizes[1:].argmax() + 1  # `argmax` 返回最大区域的索引，+1 是因为背景标签为 0
+#     # Find the region with maximum volume (excluding background region with label 0)
+#     max_label = region_sizes[1:].argmax() + 1  # `argmax` returns index of largest region, +1 because background is labeled 0
     
-#     # 创建只包含最大连通区域的掩码
+#     # Create mask containing only the largest connected region
 #     max_area_mask_np = (labeled_mask == max_label)
     
-#     # 通过将坐标转换回有效体素的位置，生成最终的掩码
-#     final_mask = max_area_mask_np[z, y, x]  # 使用原始有效体素坐标索引
+#     # Generate final mask by converting coordinates back to valid voxel positions
+#     final_mask = max_area_mask_np[z, y, x]  # Index using original valid voxel coordinates
     
-#     # 返回一个形状为 (N,) 的布尔张量
+#     # Return boolean tensor with shape (N,)
 #     return torch.tensor(final_mask, dtype=mask.dtype, device=mask.device)
+
 
 def keep_largest_connected_region_3d(coords: torch.Tensor, mask: torch.Tensor, grid_shape: tuple, n: int = 1) -> torch.Tensor:
     """
-    保留前 n 个连通区域中体积最大的区域，去除其他小区域。
+    Retain the largest volume region among the first n connected regions and remove the other small regions.
 
     参数:
-        coords (torch.Tensor): 体素坐标，形状为 (N, 3)，每行是一个 (x, y, z) 坐标。
-        mask (torch.Tensor): 体素掩码，形状为 (N,)，表示每个体素是否有效。
-        grid_shape (tuple): 3D 网格的大小 (D, H, W)，即体素网格的维度。
-        n (int): 要保留的最大连通区域的数量，默认值为 1。
+        coords (torch.Tensor): Voxel coordinates, in the shape of (N, 3), each line represents a (x, y, z) coordinate.
+        mask (torch.Tensor): Voxel mask, in the shape of (N,), indicates whether each voxel is valid.
+        grid_shape (tuple): The size of the 3D mesh (D, H, W), that is, the dimension of the voxel mesh.
+        n (int): The default value of the maximum number of connected regions to be retained is 1.
 
     返回:
-        torch.Tensor: 只保留前 n 个最大体积区域的掩码，形状为 (N,)，类型为 torch.bool。
+        torch.Tensor: Only retain the mask of the first n largest volume regions, with the shape (N,) and type torch.bool.
     """
-    # 将有效体素的坐标提取出来
     valid_coords = coords[mask].cpu()
 
     if valid_coords.size(0) == 0:
-        return torch.zeros(mask.size(0), dtype=mask.dtype, device=mask.device)  # 如果没有有效体素，返回全 False 的掩码
+        return torch.zeros(mask.size(0), dtype=mask.dtype, device=mask.device)  
 
-    # 创建 3D 网格，初始化为 0
-    grid = np.zeros(grid_shape, dtype=int)  # 使用 0 初始化，之后用标签表示连通区域
+    grid = np.zeros(grid_shape, dtype=int)  
 
-    # 将有效体素坐标映射到 3D 网格中，索引为有效体素的位置
     z, y, x = valid_coords[:, 0].int().numpy(), valid_coords[:, 1].int().numpy(), valid_coords[:, 2].int().numpy()
-    grid[z, y, x] = 1  # 在 3D 网格中标记有效体素的位置为 1
+    grid[z, y, x] = 1 
 
-    # 生成 26-连通的结构元素（3D）
-    structure = generate_binary_structure(3, 3)  # 26-连通
+    structure = generate_binary_structure(3, 3)  # 26- Connectivity
 
-    # 使用 scipy.ndimage.label 对 3D 网格进行连通区域标记
     labeled_mask, num_labels = label(grid, structure)
 
-    # 计算每个连通区域的体积（即体素数）
+    # Calculate the volume (i.e., the number of voxels) of each connected region
     region_sizes = np.bincount(labeled_mask.ravel())
 
-    # 排除背景区域（背景标签为 0），对连通区域按体积从大到小排序
-    sorted_labels = np.argsort(region_sizes[1:])[::-1] + 1  # 排序后加 1，因为背景标签为 0
+    sorted_labels = np.argsort(region_sizes[1:])[::-1] + 1  
 
-    # 选择前 n 个最大连通区域的标签
     selected_labels = sorted_labels[:n]
 
-    # 创建只包含前 n 个最大连通区域的掩码
     max_area_mask_np = np.isin(labeled_mask, selected_labels)
 
-    # 通过将坐标转换回有效体素的位置，生成最终的掩码
-    final_mask = max_area_mask_np[z, y, x]  # 使用原始有效体素坐标索引
+    final_mask = max_area_mask_np[z, y, x]  
 
-    # 返回一个形状为 (N,) 的布尔张量
     return torch.tensor(final_mask, dtype=mask.dtype, device=mask.device)
 
 def keep_connected_region_3d(coords, labels, n):
@@ -342,77 +334,46 @@ def keep_connected_region_3d(coords, labels, n):
 
 
 def calculate_iou(mask_pred, mask_gt):
-    """
-    计算两个二值 mask 的 IoU
-    """
     intersection = np.logical_and(mask_pred, mask_gt).sum()
     union = np.logical_or(mask_pred, mask_gt).sum()
     if union == 0:
         return 0.0
     return intersection / union
 
-# def calculate_ap(fp, tp, fn):
-#     """
-#     根据 TP, FP, FN 计算 precision, recall, 并返回 AP
-#     """
-#     # Compute precision and recall
-#     precision = np.cumsum(tp) / (np.cumsum(tp) + np.cumsum(fp))  # 累计precision = 累计TP / 累计pred
-#     recall = np.cumsum(tp) / (np.sum(tp) + np.sum(fn))  # 累计recall = 累计TP / GT (FN不累加，它在所有阈值下是一样的)
-
-#     # 处理空值
-#     precision = np.nan_to_num(precision, nan=0.0)
-#     recall = np.nan_to_num(recall, nan=0.0)
-
-#     # 插入哨兵值，分别在 recall 和 precision 前后插入值
-#     mrec = np.concatenate(([0.], recall, [1.]))  # 在 recall 前插入0，后插入1
-#     mpre = np.concatenate(([0.], precision, [0.]))  # 在 precision 前插入0，后插入0
-
-#     # 计算精度包络，插值确保精度是递减的
-#     for i in range(mpre.size - 1, 0, -1):
-#         mpre[i - 1] = np.maximum(mpre[i - 1], mpre[i])
-
-#     # 计算 AP，使用 Recall 发生变化的位置来进行积分
-#     i = np.where(mrec[1:] != mrec[:-1])[0]  # 查找 Recall 变化的位置
-
-#     # 使用梯形法则计算 PR 曲线的面积
-#     ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])
-
-#     return ap
 
 def calculate_ap(fp, tp, fn):
     # Compute precision and recall
-    precision = np.cumsum(tp) / (np.cumsum(tp) + np.cumsum(fp))  # 累计precision = 累计TP / 累计pred
-    recall = np.cumsum(tp) / (np.sum(tp) + np.sum(fn))  # 累计recall = 累计TP / GT (FN不累加，它在所有阈值下是一样的)
+    precision = np.cumsum(tp) / (np.cumsum(tp) + np.cumsum(fp))  # Cumulative precision = cumulative TP/cumulative pred
+    recall = np.cumsum(tp) / (np.sum(tp) + np.sum(fn))  # Cumulative recall = cumulative TP/GT (FN is not cumulative; it remains the same across all thresholds)
 
-    # 处理空值
     precision = np.nan_to_num(precision, nan=0.0)
     recall = np.nan_to_num(recall, nan=0.0)
 
-    # 在 Recall 上进行扩展，添加起点 (Recall=0) 和终点 (Recall=1)
+    # Expand on Recall by adding a starting point (Recall=0) and an ending point (Recall=1).
     recall_for_conv = np.copy(recall)
-    recall_for_conv = np.insert(recall_for_conv, 0, 0.)  # 在最前面插入 Recall=0
-    recall_for_conv = np.append(recall_for_conv, 1.)    # 在最后插入 Recall=1
+    recall_for_conv = np.insert(recall_for_conv, 0, 0.)  # Insert Recall=0 at the very beginning
+    recall_for_conv = np.append(recall_for_conv, 1.)    # Insert Recall=1 at the end
 
-    # 插入的 Recall 对应的 Precision
+    # The Precision corresponding to the inserted Recall
     precision_for_conv = np.copy(precision)
-    precision_for_conv = np.insert(precision_for_conv, 0, 1.)  # Recall=0 时的 Precision=1
-    precision_for_conv = np.append(precision_for_conv, 0.)    # Recall=1 时的 Precision=0
+    precision_for_conv = np.insert(precision_for_conv, 0, 1.)  # When Recall=0, Precision=1
+    precision_for_conv = np.append(precision_for_conv, 0.)    # Precision=0 when Recall=1
 
-    # 计算 PR 曲线的面积，使用梯形法则积分
-    ap = np.trapz(precision_for_conv, recall_for_conv)  # 梯形积分 (trapezoidal integration)
+    # Calculate the area of the PR curve and integrate it using the trapezoidal rule
+    ap = np.trapz(precision_for_conv, recall_for_conv)  # trapezoidal integration
     
     return ap
 
 def evaluate_instance_segmentation(predictions_list, ground_truths_list):
     """
-    计算多张图片的 AP50, AP75 和 mAP
+    Calculate the AP50, AP75 and mAP of multiple images
     :param predictions_list: List of predictions for each image
     :param ground_truths_list: List of ground truths for each image
     :param iou_thresholds: List of IoU thresholds for calculating mAP
     :return: AP50, AP75, mAP
     """
     iou_thresholds = np.arange(0.5, 1.0, 0.05)
-    iou_thresholds = np.round(iou_thresholds, 2)  # 四舍五入到两位小数
+    iou_thresholds = np.round(iou_thresholds, 2)  
     iou_thresholds = np.insert(iou_thresholds, 0, 0.25)
 
     ap_dict = {}
