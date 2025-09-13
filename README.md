@@ -5,6 +5,14 @@ Existing language instruction-guided online 3D reconstruction systems mainly rel
   <img src="https://github.com/zhen6618/LIRA/blob/main/demo/Supplementary_Video.mp4" alt="Alt Text">
 </p>
 
+<div align=center>
+<img src="Reasoning_Reconstruction_Result.png" width="1000px"> 
+</div>
+
+<div align=center>
+<img src="Reasoning_Reconstruction_Vis.png" width="1000px"> 
+</div>
+
 ## Installation
 ```
 conda create -n LIRA python=3.9
