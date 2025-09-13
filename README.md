@@ -6,11 +6,11 @@ Existing language instruction-guided online 3D reconstruction systems mainly rel
 </p>
 
 <div align=center>
-<img src="Reasoning_Reconstruction_Result.png" width="1000px"> 
+<img src="https://github.com/zhen6618/LIRA/blob/main/demo/Reasoning_Reconstruction_Vis.png" width="1000px"> 
 </div>
 
 <div align=center>
-<img src="Reasoning_Reconstruction_Vis.png" width="1000px"> 
+<img src="https://github.com/zhen6618/LIRA/blob/main/demo/Reasoning_Reconstruction_Result.png" width="500px"> 
 </div>
 
 ## Installation
