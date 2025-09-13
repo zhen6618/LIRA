@@ -1,6 +1,10 @@
 ## LIRA: Reasoning Reconstruction via Multimodal Large Language Models
 Existing language instruction-guided online 3D reconstruction systems mainly rely on explicit instructions or queryable maps, showing inadequate capability to handle implicit and complex instructions. In this paper, we first introduce a reasoning reconstruction task. This task inputs an implicit instruction involving complex reasoning and an RGB-D sequence, and outputs incremental 3D reconstruction of instances that conform to the instruction. To handle this task, we propose LIRA: Language Instructed Reconstruction Assistant. It leverages a multimodal large language model to actively reason about the implicit instruction and obtain instruction-relevant 2D candidate instances and their attributes. Then, candidate instances are back-projected into the incrementally reconstructed 3D geometric map, followed by instance fusion and target instance inference. In LIRA, to achieve higher instance fusion quality, we propose TIFF, a Text-enhanced Instance Fusion module operating within Fragment bounding volume, which is learning-based and fuses multiple keyframes simultaneously. Since the evaluation system for this task is not well established, we propose a benchmark ReasonRecon comprising the largest collection of scene-instruction data samples involving implicit reasoning. Experiments demonstrate that LIRA outperforms existing methods in the reasoning reconstruction task and is capable of running in real time. 
 
+<p align="center">
+  <img src="https://github.com/zhen6618/EPRecon/blob/main/demo/demo.gif" alt="Alt Text">
+</p>
+
 ## Installation
 ```
 conda create -n LIRA python=3.9
