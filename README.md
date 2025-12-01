@@ -29,7 +29,8 @@ pip install -U openmim
 mim install mmcv-full
 
 ```
-Install additional [LISA](https://github.com/dvlab-research/LISA) environment 
+Install additional [LISA](https://github.com/dvlab-research/LISA) environment,
+recommand install flash-attn offline, find [flash-attention](https://github.com/Dao-AILab/flash-attention/releases?page=5) .
 
 
 ## Dataset
