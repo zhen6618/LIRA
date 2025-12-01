@@ -122,7 +122,14 @@ python tools/evaluation_3d.py
 
 ## Citation
 ```
-ICCV2025 coming soon...
+@InProceedings{Zhou_2025_ICCV,
+    author    = {Zhou, Zhen and Wang, Tong and Ma, Yunkai and Tan, Xiao and Jing, Fengshui},
+    title     = {LIRA: Reasoning Reconstruction via Multimodal Large Language Models},
+    booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+    month     = {October},
+    year      = {2025},
+    pages     = {1762-1772}
+}
 ```
 
 ## Acknowledgement
