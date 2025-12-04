@@ -21,7 +21,7 @@ def parse_args():
 
 
     parser.add_argument("--dataset", default='scannet')
-    parser.add_argument("--data_path", default='datasets/dog_arm/')
+    parser.add_argument("--data_path", default='datasets/scannet/')
     parser.add_argument("--save_name",  default='all_tsdf_9')
     parser.add_argument('--test', action='store_true', default=False)
 
