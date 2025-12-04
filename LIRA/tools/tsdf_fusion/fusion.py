@@ -126,7 +126,6 @@ class TSDFVolume:
           tsdf_vol[voxel_idx] = (tsdf_vol[voxel_idx]*w_old+obs_weight*dist)/w_new;
           
           // Integrate color
-          return;
           float old_color = color_vol[voxel_idx];
           float old_b = floorf(old_color/(256*256));
           float old_g = floorf((old_color-old_b*256*256)/256);
@@ -224,7 +223,13 @@ class TSDFVolume:
             # Fold RGB color image into a single channel image
             color_im = color_im.astype(np.float32)
             color_im = np.floor(color_im[..., 2] * self._color_const + color_im[..., 1] * 256 + color_im[..., 0])
-            color_im = color_im.reshape(-1).astype(np.float32)
+            
+            # 只有在 GPU 模式下才展平为一维，CPU 模式下保留 (H, W) 以便后续使用 [y, x] 索引
+            if self.gpu_mode:
+                color_im = color_im.reshape(-1).astype(np.float32)
+            else:
+                color_im = color_im.astype(np.float32)
+
         else:
             color_im = np.array(0)
 
@@ -299,20 +304,57 @@ class TSDFVolume:
             new_r = np.minimum(255., np.round((w_old * old_r + obs_weight * new_r) / w_new))
             self._color_vol_cpu[valid_vox_x, valid_vox_y, valid_vox_z] = new_b * self._color_const + new_g * 256 + new_r
 
-    def get_volume(self):
+    def get_volume(self, trans_color=True):
         if self.gpu_mode:
             self.cuda.memcpy_dtoh(self._tsdf_vol_cpu, self._tsdf_vol_gpu)
             self.cuda.memcpy_dtoh(self._color_vol_cpu, self._color_vol_gpu)
             self.cuda.memcpy_dtoh(self._weight_vol_cpu, self._weight_vol_gpu)
-        return self._tsdf_vol_cpu, self._color_vol_cpu, self._weight_vol_cpu
+        
+        if trans_color:
+            color_ = self.decode_fused_color()
+        else:
+            color_ = self._color_vol_cpu.copy()
+
+        return self._tsdf_vol_cpu, color_, self._weight_vol_cpu
+
+    def get_vol(self):
+        return self._tsdf_vol_cpu.shape
+
+    def decode_fused_color(self):
+        # --- 解码颜色开始 ---
+        # 原始形状: (149, 83, 114)
+        raw_color_vol = self._color_vol_cpu.copy()
+        
+        # 1. 解码 Blue (最高位)
+        # value / 65536 取整
+        b_vol = np.floor(raw_color_vol / self._color_const)
+        
+        # 2. 计算剩余部分 (G * 256 + R)
+        remainder = raw_color_vol - b_vol * self._color_const
+        
+        # 3. 解码 Green (中间位)
+        # remainder / 256 取整
+        g_vol = np.floor(remainder / 256)
+        
+        # 4. 解码 Red (最低位)
+        # remainder 取余 256
+        r_vol = remainder - g_vol * 256
+        
+        # 5. 堆叠成 (D, H, W, 3) 并转为 uint8 类型 (0-255)
+        # 这里的顺序是 R, G, B。如果你后续使用 OpenCV 库显示，可能需要改为 [b_vol, g_vol, r_vol], 此时 shape 应该是 (149, 83, 114, 3)
+        color_ = np.stack([r_vol, g_vol, b_vol], axis=-1).astype(np.uint8)
+        # --- 解码颜色结束 ---
+
+        return color_
 
     def get_point_cloud(self):
         """Extract a point cloud from the voxel volume.
         """
-        tsdf_vol, color_vol, weight_vol = self.get_volume()
+        tsdf_vol, color_vol, weight_vol = self.get_volume(trans_color=False)
 
         # Marching cubes
-        verts = measure.marching_cubes_lewiner(tsdf_vol, level=0)[0]
+        # verts = measure.marching_cubes_lewiner(tsdf_vol, level=0)[0]
+        verts = measure.marching_cubes(tsdf_vol, level=0)[0]
         verts_ind = np.round(verts).astype(int)
         verts = verts * self._voxel_size + self._vol_origin
 
@@ -330,7 +372,7 @@ class TSDFVolume:
     def get_mesh(self):
         """Compute a mesh from the voxel volume using marching cubes.
         """
-        tsdf_vol, color_vol, weight_vol = self.get_volume()
+        tsdf_vol, color_vol, weight_vol = self.get_volume(trans_color=False)
 
         verts, faces, norms, vals = measure.marching_cubes(tsdf_vol, level=0)
         verts_ind = np.round(verts).astype(int)
