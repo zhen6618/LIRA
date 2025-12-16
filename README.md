@@ -37,23 +37,23 @@ recommand install flash-attn offline, find [flash-attention](https://github.com/
 
 1. Download and extract ScanNet by following the instructions provided at http://www.scan-net.org/.
 ```
-python datasets/scannet/download_scannet.py
+python scannet/download_scannet.py
 ```
 2. Generate depth, color, pose, intrinsics from .sens file (change your file path)
 ```
-python datasets/scannet/reader.py
+python scannet/reader.py
 ```
 Expected directory structure of ScanNet can refer to [NeuralRecon](https://github.com/zju3dv/NeuralRecon)
 
 3. Extract instance-level semantic labels (change your file path).
 ```
-python datasets/scannet/batch_load_scannet_data.py
+python scannet/batch_load_scannet_data.py
 python tools/tsdf_fusion/generate_gt.py --data_path datasets/scannet/ --save_name all_tsdf_9 --window_size 9
 python tools/tsdf_fusion/generate_gt.py --test --data_path datasets/scannet/ --save_name all_tsdf_9 --window_size 9
 ```
 4. Instance-level label interpolation (change your file path):
 ```
-python datasets/scannet/label_interpolate.py
+python scannet/label_interpolate.py
 ```
 5. Download 2D reasoning segmentation dataset and reasoning reconstruction dataset
    
