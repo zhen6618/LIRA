@@ -34,7 +34,9 @@ recommand install flash-attn offline, find [flash-attention](https://github.com/
 
 
 ## Dataset
+```
 cd LIRA
+```
 
 1. Download and extract ScanNet by following the instructions provided at http://www.scan-net.org/.
 ```
